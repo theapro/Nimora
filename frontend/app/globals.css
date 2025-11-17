@@ -3,19 +3,24 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --cyan1-blue: #36F5FF;
+  --cyan2-blue: #75B9F4;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-cyan1: var(--cyan1-blue);
+  --color-cyan2: var(--cyan2-blue);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-judson: var(--font-judson);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff;
+    --foreground: #171717;
   }
 }
 
