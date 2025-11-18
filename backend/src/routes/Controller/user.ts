@@ -12,19 +12,26 @@ class UserController {
   }
 
   private initializeDatabase() {
-    this.db = mysql.createPool({
-      host: process.env.HOST || "localhost",
-      user: process.env.USER || "root",
-      password: process.env.PASSWORD || "",
-      database: process.env.DATABASE || "nimora",
-      port: parseInt(process.env.DB_PORT || "3306"),
-      waitForConnections: true,
-      connectionLimit: 10,
-    });
+    try {
+      this.db = mysql.createPool({
+        host: process.env.HOST || "localhost",
+        user: process.env.USER || "root",
+        password: process.env.PASSWORD || "",
+        database: process.env.DATABASE || "nimora",
+        port: parseInt(process.env.DB_PORT || "3306"),
+        waitForConnections: true,
+        connectionLimit: 10,
+      });
+      console.log("Database pool created successfully");
+    } catch (error) {
+      console.error("Database initialization error:", error);
+    }
   }
 
   private initializeRoutes() {
     this.router.post("/auth/register", this.register);
+    this.router.post("/auth/login", this.login);
+    console.log("User routes initialized: /api/auth/register, /api/auth/login");
   }
 
   private hashPassword(password: string): string {
@@ -35,7 +42,6 @@ class UserController {
     try {
       const { username, email, password, confirmPassword } = req.body;
 
-      // Validation
       if (!username || !email || !password || !confirmPassword) {
         return res.status(400).json({ error: "All fields are required" });
       }
@@ -50,10 +56,8 @@ class UserController {
           .json({ error: "Password must be at least 6 characters" });
       }
 
-      // Hash password
       const hashedPassword = this.hashPassword(password);
 
-      // Insert user
       const [result] = await this.db.execute(
         "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
         [username, email, hashedPassword]
@@ -70,6 +74,37 @@ class UserController {
           .json({ error: "Username or email already exists" });
       }
       console.error("Registration error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private login = async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res
+          .status(400)
+          .json({ error: "Email and password are required" });
+      }
+
+      const [rows] = await this.db.execute(
+        "SELECT * FROM users WHERE email = ?",
+        [email]
+      );
+
+      const hashedPassword = this.hashPassword(password);
+
+      if (hashedPassword !== (rows as any)[0]?.password) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      res.status(200).json({
+        message: "Login successful",
+        userId: (rows as any)[0].id,
+      });
+    } catch (error) {
+      console.error("Login error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   };
