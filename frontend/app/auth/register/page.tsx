@@ -32,14 +32,11 @@ const Register = () => {
 
       if (res.ok) {
         console.log("Registration successful");
-        alert("Registration successful!");
       } else {
         console.log("Registration failed:", data.error);
-        alert(data.error || "Registration failed");
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("An error occurred during registration");
     }
   };
 
