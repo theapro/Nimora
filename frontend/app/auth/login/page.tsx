@@ -2,11 +2,13 @@
 
 import React from "react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +31,11 @@ const Login = () => {
       }
 
       console.log("Login successful:", data);
+
+      // Save user data to context and localStorage
+      if (data.token && data.user) {
+        login(data.user, data.token);
+      }
 
       window.location.href = "/home";
     } catch (error) {
