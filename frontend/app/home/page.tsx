@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import Posts from "@/components/Posts";
 import Footer from "@/components/Footer";
 import CategorySidebar from "@/components/CategorySidebar";
+import TopDiscussions from "@/components/TopDiscussions";
 
 const page = () => {
   return (
@@ -14,12 +15,13 @@ const page = () => {
           <div>
             <CategorySidebar />
           </div>
-          <div className="flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center">
             <Sidebar />
             <Footer />
           </div>
         </div>
         <Posts />
+        <TopDiscussions />
       </div>
     </>
   );
