@@ -37,6 +37,7 @@ class UserController {
   private initializeRoutes() {
     this.router.post("/auth/register", this.register);
     this.router.post("/auth/login", this.login);
+    this.router.get("/auth/verify", verifyToken, this.verifyToken);
     this.router.get("/user/:id", verifyToken, this.getUserProfile);
     this.router.put("/user/:id", verifyToken, this.updateUserProfile);
     this.router.post(
@@ -45,6 +46,18 @@ class UserController {
       upload.single("profileImage"),
       this.uploadProfileImage
     );
+
+    // Follow routes
+    this.router.post("/user/:id/follow", verifyToken, this.followUser);
+    this.router.delete("/user/:id/unfollow", verifyToken, this.unfollowUser);
+    this.router.get("/user/:id/followers", this.getFollowers);
+    this.router.get("/user/:id/following", this.getFollowing);
+    this.router.get(
+      "/user/:id/follow/check",
+      verifyToken,
+      this.checkFollowStatus
+    );
+
     console.log(
       "User routes initialized: /api/auth/register, /api/auth/login, /api/user/:id"
     );
@@ -136,12 +149,39 @@ class UserController {
     }
   };
 
+  private verifyToken = async (req: AuthRequest, res: Response) => {
+    try {
+      // If we reach here, token is valid (verifyToken middleware passed)
+      res.status(200).json({
+        valid: true,
+        userId: req.userId,
+      });
+    } catch (error) {
+      console.error("Token verification error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
   private getUserProfile = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
       const [rows] = await this.db.execute(
-        "SELECT id, username, email, profile_image, bio, created_at FROM users WHERE id = ?",
+        `SELECT 
+          id, 
+          username, 
+          email, 
+          profile_image, 
+          bio, 
+          profession, 
+          location, 
+          website, 
+          created_at,
+          (SELECT COUNT(*) FROM followers WHERE following_id = users.id) as followers_count,
+          (SELECT COUNT(*) FROM followers WHERE follower_id = users.id) as following_count,
+          (SELECT COUNT(*) FROM posts WHERE user_id = users.id) as posts_count
+        FROM users 
+        WHERE id = ?`,
         [id]
       );
 
@@ -160,7 +200,15 @@ class UserController {
   private updateUserProfile = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { username, email, bio, profile_image } = req.body;
+      const {
+        username,
+        email,
+        bio,
+        profile_image,
+        profession,
+        location,
+        website,
+      } = req.body;
 
       const updates: string[] = [];
       const values: any[] = [];
@@ -181,6 +229,18 @@ class UserController {
         updates.push("profile_image = ?");
         values.push(profile_image);
       }
+      if (profession !== undefined) {
+        updates.push("profession = ?");
+        values.push(profession);
+      }
+      if (location !== undefined) {
+        updates.push("location = ?");
+        values.push(location);
+      }
+      if (website !== undefined) {
+        updates.push("website = ?");
+        values.push(website);
+      }
 
       if (updates.length === 0) {
         return res.status(400).json({ error: "No fields to update" });
@@ -198,7 +258,7 @@ class UserController {
       }
 
       const [rows] = await this.db.execute(
-        "SELECT id, username, email, profile_image, bio, created_at FROM users WHERE id = ?",
+        "SELECT id, username, email, profile_image, bio, profession, location, website, created_at FROM users WHERE id = ?",
         [id]
       );
 
@@ -236,7 +296,7 @@ class UserController {
       ]);
 
       const [rows] = await this.db.execute(
-        "SELECT id, username, email, profile_image, bio, created_at FROM users WHERE id = ?",
+        "SELECT id, username, email, profile_image, bio, profession, location, website, created_at FROM users WHERE id = ?",
         [id]
       );
 
@@ -246,6 +306,148 @@ class UserController {
       });
     } catch (error) {
       console.error("Upload profile image error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  // Follow methods
+  private followUser = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const followerId = req.userId;
+
+      if (!followerId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (followerId === parseInt(id)) {
+        return res.status(400).json({ error: "Cannot follow yourself" });
+      }
+
+      // Check if user exists
+      const [userExists] = await this.db.execute(
+        "SELECT id FROM users WHERE id = ?",
+        [id]
+      );
+
+      if ((userExists as any).length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if already following
+      const [existing] = await this.db.execute(
+        "SELECT id FROM followers WHERE follower_id = ? AND following_id = ?",
+        [followerId, id]
+      );
+
+      if ((existing as any).length > 0) {
+        return res.status(400).json({ error: "Already following this user" });
+      }
+
+      await this.db.execute(
+        "INSERT INTO followers (follower_id, following_id) VALUES (?, ?)",
+        [followerId, id]
+      );
+
+      res.status(201).json({ message: "Successfully followed user" });
+    } catch (error) {
+      console.error("Follow user error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private unfollowUser = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const followerId = req.userId;
+
+      if (!followerId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [result] = await this.db.execute(
+        "DELETE FROM followers WHERE follower_id = ? AND following_id = ?",
+        [followerId, id]
+      );
+
+      if ((result as any).affectedRows === 0) {
+        return res.status(404).json({ error: "Not following this user" });
+      }
+
+      res.status(200).json({ message: "Successfully unfollowed user" });
+    } catch (error) {
+      console.error("Unfollow user error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private getFollowers = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const [rows] = await this.db.execute(
+        `SELECT 
+          users.id,
+          users.username,
+          users.profile_image,
+          users.bio,
+          users.profession
+        FROM followers
+        JOIN users ON followers.follower_id = users.id
+        WHERE followers.following_id = ?
+        ORDER BY followers.created_at DESC`,
+        [id]
+      );
+
+      res.status(200).json({ followers: rows });
+    } catch (error) {
+      console.error("Get followers error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private getFollowing = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const [rows] = await this.db.execute(
+        `SELECT 
+          users.id,
+          users.username,
+          users.profile_image,
+          users.bio,
+          users.profession
+        FROM followers
+        JOIN users ON followers.following_id = users.id
+        WHERE followers.follower_id = ?
+        ORDER BY followers.created_at DESC`,
+        [id]
+      );
+
+      res.status(200).json({ following: rows });
+    } catch (error) {
+      console.error("Get following error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private checkFollowStatus = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const followerId = req.userId;
+
+      if (!followerId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [rows] = await this.db.execute(
+        "SELECT id FROM followers WHERE follower_id = ? AND following_id = ?",
+        [followerId, id]
+      );
+
+      res.status(200).json({ isFollowing: (rows as any).length > 0 });
+    } catch (error) {
+      console.error("Check follow status error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   };

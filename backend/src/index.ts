@@ -3,8 +3,14 @@ dotenv.config();
 
 import App from "./utils/app";
 import UserController from "./routes/Controller/user";
+import PostController from "./routes/Controller/post";
+import CommunityController from "./routes/Controller/community";
 
-const app = new App([new UserController()]);
+const app = new App([
+  new UserController(),
+  new PostController(),
+  new CommunityController(),
+]);
 const PORT = process.env.PORT || 3001;
 
 app.app.get("/api/test", (req, res) => {

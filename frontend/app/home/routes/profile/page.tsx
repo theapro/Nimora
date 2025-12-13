@@ -12,6 +12,9 @@ interface UserProfile {
   email: string;
   profile_image?: string;
   bio?: string;
+  profession?: string;
+  location?: string;
+  website?: string;
   created_at: string;
 }
 
@@ -28,6 +31,9 @@ const Profile = () => {
     username: "",
     email: "",
     bio: "",
+    profession: "",
+    location: "",
+    website: "",
   });
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [error, setError] = React.useState("");
@@ -54,6 +60,9 @@ const Profile = () => {
             username: data.user.username || "",
             email: data.user.email || "",
             bio: data.user.bio || "",
+            profession: data.user.profession || "",
+            location: data.user.location || "",
+            website: data.user.website || "",
           });
         } else {
           setError(data.error || "Failed to load profile");
@@ -368,6 +377,48 @@ const Profile = () => {
                     rows={4}
                     className="w-full px-4 py-2 border border-cyan1 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none resize-none"
                     placeholder="Tell us about yourself..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Profession
+                  </label>
+                  <input
+                    type="text"
+                    name="profession"
+                    value={formData.profession}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-cyan1 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
+                    placeholder="e.g. Software Engineer, Designer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-cyan1 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
+                    placeholder="e.g. San Francisco, CA"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Website
+                  </label>
+                  <input
+                    type="url"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-cyan1 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none"
+                    placeholder="https://yourwebsite.com"
                   />
                 </div>
 

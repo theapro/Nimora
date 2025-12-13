@@ -42,6 +42,30 @@ export const verifyToken = async (
   }
 };
 
+export const optionalAuth = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      const userId = tokenStore.get(token);
+
+      if (userId) {
+        req.userId = userId;
+      }
+    }
+
+    next();
+  } catch (error) {
+    console.error("Optional auth error:", error);
+    next();
+  }
+};
+
 export const removeToken = (token: string) => {
   tokenStore.delete(token);
 };

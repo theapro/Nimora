@@ -10,7 +10,8 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = crypto.randomBytes(8).toString("hex");
     const ext = path.extname(file.originalname);
-    cb(null, `profile-${uniqueSuffix}${ext}`);
+    const fieldName = file.fieldname === "coverImage" ? "post" : "profile";
+    cb(null, `${fieldName}-${uniqueSuffix}${ext}`);
   },
 });
 
