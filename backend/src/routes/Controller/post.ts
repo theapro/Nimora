@@ -41,6 +41,7 @@ class PostController {
       this.createPost
     );
     this.router.get("/posts", optionalAuth, this.getAllPosts);
+    this.router.get("/posts/top/discussions", this.getTopDiscussions);
     this.router.get("/posts/:id", this.getPostById);
     this.router.put(
       "/posts/:id",
@@ -664,6 +665,29 @@ class PostController {
       res.status(200).json({ message: "Comment deleted successfully" });
     } catch (error) {
       console.error("Delete comment error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private getTopDiscussions = async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+
+      const [rows] = await this.db.query(
+        `SELECT 
+          posts.id,
+          posts.title,
+          COUNT(comments.id) as comments_count
+        FROM posts
+        LEFT JOIN comments ON comments.post_id = posts.id
+        GROUP BY posts.id, posts.title, posts.created_at
+        ORDER BY comments_count DESC, posts.created_at DESC
+        LIMIT ${limit}`
+      );
+
+      res.status(200).json({ posts: rows });
+    } catch (error) {
+      console.error("Get top discussions error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   };

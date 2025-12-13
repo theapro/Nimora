@@ -117,7 +117,7 @@ const Posts = () => {
           {/* Trigger */}
           <button
             onClick={() => setOpen(!open)}
-            className="px-3 border border-[#e4e4e4] bg-white cursor-pointer py-1.5 text-sm font-medium rounded
+            className="px-3 border border-[#e4e4e4] bg-white cursor-pointer py-3 text-sm font-medium rounded
                    hover:bg-gray-100 transition
                    focus:outline-none"
           >
@@ -128,7 +128,7 @@ const Posts = () => {
           {open && (
             <div
               className="absolute right-0 mt-2 w-56 bg-white border border-[#e4e4e4]
-                        rounded shadow-md z-50"
+                        rounded shadow-md"
             >
               <div className="px-4 py-2 text-sm font-medium text-gray-900">
                 Sort By
