@@ -15,6 +15,7 @@ interface AuthContextType {
   logout: () => void;
   refreshUser: () => Promise<void>;
   isLoading: boolean;
+  checkTokenValidity: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +23,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const logout = React.useCallback(() => {
+    setUser(null);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    window.location.href = "/auth/login";
+  }, []);
 
   React.useEffect(() => {
     const loadUser = async () => {
@@ -42,6 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           );
 
+          if (res.status === 401) {
+            // Token expired or invalid
+            logout();
+            return;
+          }
+
           if (res.ok) {
             const data = await res.json();
             const updatedUser = {
@@ -61,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     loadUser();
-  }, []);
+  }, [logout]);
 
   const login = (userData: User, token: string) => {
     setUser(userData);
@@ -69,13 +83,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("token", token);
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-  };
+  const checkTokenValidity = React.useCallback(async (): Promise<boolean> => {
+    const storedToken = localStorage.getItem("token");
 
-  const refreshUser = async () => {
+    if (!storedToken) {
+      return false;
+    }
+
+    try {
+      const res = await fetch("http://localhost:3001/api/auth/verify", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${storedToken}`,
+        },
+      });
+
+      if (res.status === 401) {
+        // Token expired or invalid
+        logout();
+        return false;
+      }
+
+      return res.ok;
+    } catch (error) {
+      console.error("Error checking token validity:", error);
+      return false;
+    }
+  }, [logout]);
+
+  // Automatically check token validity on mount and periodically
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      checkTokenValidity();
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [checkTokenValidity]);
+
+  const refreshUser = React.useCallback(async () => {
     const storedUser = localStorage.getItem("user");
     const storedToken = localStorage.getItem("token");
 
@@ -88,6 +133,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           Authorization: `Bearer ${storedToken}`,
         },
       });
+
+      if (res.status === 401) {
+        // Token expired or invalid
+        logout();
+        return;
+      }
 
       if (res.ok) {
         const data = await res.json();
@@ -103,11 +154,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error refreshing user:", error);
     }
-  };
+  }, [logout]);
 
   return (
     <AuthContext.Provider
-      value={{ user, login, logout, refreshUser, isLoading }}
+      value={{
+        user,
+        login,
+        logout,
+        refreshUser,
+        isLoading,
+        checkTokenValidity,
+      }}
     >
       {children}
     </AuthContext.Provider>
