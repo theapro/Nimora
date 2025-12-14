@@ -148,7 +148,7 @@ class PostController {
 
   private getAllPosts = async (req: AuthRequest, res: Response) => {
     try {
-      const { feed = "forYou", sort = "latest" } = req.query;
+      const { feed = "forYou", sort = "latest", community } = req.query;
       const userId = req.userId;
 
       let baseQuery = `
@@ -177,9 +177,17 @@ class PostController {
       let whereClause = "";
       const queryParams: any[] = [];
 
+      // Filter by community
+      if (community) {
+        whereClause = "WHERE posts.category_id = ?";
+        queryParams.push(community);
+      }
+
       // Filter by feed type
       if (feed === "following" && userId) {
-        whereClause = `WHERE posts.user_id IN (
+        whereClause +=
+          (whereClause ? " AND " : "WHERE ") +
+          `posts.user_id IN (
           SELECT following_id FROM followers WHERE follower_id = ?
         )`;
         queryParams.push(userId);

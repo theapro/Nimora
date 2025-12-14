@@ -20,7 +20,11 @@ interface Post {
 
 type SortType = "latest" | "top-week" | "top-month" | "top-year" | "top-all";
 
-const Posts = () => {
+interface PostsProps {
+  communityId?: number | null;
+}
+
+const Posts: React.FC<PostsProps> = ({ communityId }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [active, setActive] = useState<"forYou" | "following">("forYou");
   const [sortType, setSortType] = useState<SortType>("latest");
@@ -41,8 +45,17 @@ const Posts = () => {
           headers.Authorization = `Bearer ${token}`;
         }
 
+        const params = new URLSearchParams({
+          feed: active,
+          sort: sortType,
+        });
+
+        if (communityId !== null && communityId !== undefined) {
+          params.append("community", communityId.toString());
+        }
+
         const response = await fetch(
-          `http://localhost:3001/api/posts?feed=${active}&sort=${sortType}`,
+          `http://localhost:3001/api/posts?${params.toString()}`,
           { headers }
         );
 
@@ -60,7 +73,7 @@ const Posts = () => {
     };
 
     fetchPosts();
-  }, [active, sortType]);
+  }, [active, sortType, communityId]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -86,7 +99,7 @@ const Posts = () => {
     setActive(feed);
   };
   return (
-    <div className="">
+    <div className="w-full">
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-2.5 border border-[#e4e4e4] rounded p-1 w-fit">
           <div
@@ -117,7 +130,7 @@ const Posts = () => {
           {/* Trigger */}
           <button
             onClick={() => setOpen(!open)}
-            className="px-3 border border-[#e4e4e4] bg-white cursor-pointer py-3 text-sm font-medium rounded
+            className="px-3 border border-[#e4e4e4] bg-white cursor-pointer py-2.5 text-sm font-medium rounded
                    hover:bg-gray-100 transition
                    focus:outline-none"
           >
@@ -128,7 +141,7 @@ const Posts = () => {
           {open && (
             <div
               className="absolute right-0 mt-2 w-56 bg-white border border-[#e4e4e4]
-                        rounded shadow-md"
+                        rounded shadow-md z-10"
             >
               <div className="px-4 py-2 text-sm font-medium text-gray-900">
                 Sort By
@@ -185,15 +198,37 @@ const Posts = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-8">
+        <div className="bg-white rounded-lg border border-[#e4e4e4] p-8 text-center min-h-[400px] flex items-center justify-center">
           <p className="text-gray-500">Loading posts...</p>
         </div>
       ) : posts.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500">
+        <div className="bg-white rounded-lg border w-200 border-[#e4e4e4] p-12 text-center min-h-[400px] flex flex-col items-center justify-center">
+          <svg
+            className="w-16 h-16 text-gray-300 mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <p className="text-gray-500 text-lg font-medium">
             {active === "following"
-              ? "No posts from people you follow. Try following some users!"
+              ? "No posts from people you follow"
+              : communityId
+              ? "No posts in this community yet"
               : "No posts available"}
+          </p>
+          <p className="text-gray-400 text-sm mt-2">
+            {active === "following"
+              ? "Try following some users to see their posts here"
+              : communityId
+              ? "Be the first to create a post in this community"
+              : "Check back later for new content"}
           </p>
         </div>
       ) : (

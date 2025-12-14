@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 interface Community {
   id: number;
@@ -12,10 +10,17 @@ interface Community {
   post_count: number;
 }
 
-const CategorySidebar = () => {
+interface CategorySidebarProps {
+  selectedCommunityId?: number | null;
+  onCommunitySelect: (communityId: number | null) => void;
+}
+
+const CategorySidebar: React.FC<CategorySidebarProps> = ({
+  selectedCommunityId,
+  onCommunitySelect,
+}) => {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
-  const pathname = usePathname();
 
   useEffect(() => {
     const fetchCommunities = async () => {
@@ -47,10 +52,12 @@ const CategorySidebar = () => {
     <div className="sticky left-2.5 z-40 top-16 h-[calc(100vh-2.2rem-2.5rem)] bg-white rounded border border-[#e4e4e4] p-2">
       <div className="space-y-2">
         {/* All Communities Link */}
-        <Link
-          href="/home"
-          className={`block rounded transition-all hover:bg-gray-50 ${
-            pathname === "/home" ? "bg-gray-100 border border-gray-300" : ""
+        <div
+          onClick={() => onCommunitySelect(null)}
+          className={`block rounded transition-all hover:bg-gray-50 cursor-pointer ${
+            selectedCommunityId === null
+              ? "bg-gray-100 border border-gray-300"
+              : ""
           }`}
         >
           <div className="items-center gap-3">
@@ -70,19 +77,19 @@ const CategorySidebar = () => {
               </svg>
             </div>
           </div>
-        </Link>
+        </div>
 
         {communities.length === 0 ? (
           <p className="text-gray-500 text-sm">No communities available</p>
         ) : (
           communities.map((community) => {
-            const isActive = pathname === `/community/${community.id}`;
+            const isActive = selectedCommunityId === community.id;
             return (
-              <Link
+              <div
                 key={community.id}
-                href={`/community/${community.id}`}
-                className={`block rounded-lg transition-all hover:bg-gray-50 ${
-                  isActive ? "bg-gray-100 border border-gray-300" : ""
+                onClick={() => onCommunitySelect(community.id)}
+                className={`block rounded transition-all hover:bg-gray-50 cursor-pointer ${
+                  isActive ? "bg-gray-100 border border-gray-900" : ""
                 }`}
               >
                 <div className="items-center gap-3">
@@ -92,7 +99,7 @@ const CategorySidebar = () => {
                     className="w-12 h-12 border border-[#e4e4e4] rounded object-cover"
                   />
                 </div>
-              </Link>
+              </div>
             );
           })
         )}
