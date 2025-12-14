@@ -40,7 +40,7 @@ const Navbar = () => {
 
   return (
     <>
-      <div className="sticky top-0 px-2.5 py-2 border-b border-[#e4e4e4] backdrop-blur-3xl text-sm flex items-center justify-between">
+      <div className="sticky z-100 top-0 px-2.5 py-2 border-b border-[#e4e4e4] backdrop-blur-3xl text-sm flex items-center justify-between">
         <div>
           <h1 className="text-3xl" style={{ fontFamily: "var(--font-judson)" }}>
             <Link href="/home">Nimora</Link>
