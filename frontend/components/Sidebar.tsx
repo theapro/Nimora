@@ -31,13 +31,12 @@ const iconMap: Record<string, React.ReactNode> = {
 
 const Sidebar = () => {
   return (
-    <div className="flex flex-col justify-between p-6 bg-white border border-[#e4e4e4] w-60  rounded">
-      
-      <div className="flex flex-col space-y-5 mb-90">
+    <div className="flex flex-col justify-between p-6 bg-white border border-[#e4e4e4] w-60  rounded-2xl">
+      <div className="flex flex-col  mb-90">
         {/* Navigation Links */}
         <Link
-          href="/home"
-          className="flex items-center gap-3 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
+          href="/"
+          className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
         >
           <House
             size={20}
@@ -49,7 +48,7 @@ const Sidebar = () => {
         </Link>
         <Link
           href="/home/routes/profile"
-          className="flex items-center gap-3 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
+          className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
         >
           <User size={20} className="text-gray-600 group-hover:text-gray-900" />
           <span className="text-gray-700 font-medium group-hover:text-gray-900">
@@ -58,7 +57,7 @@ const Sidebar = () => {
         </Link>
         <Link
           href="/home/routes/post"
-          className="flex items-center gap-3 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
+          className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
         >
           <Mail size={20} className="text-gray-600 group-hover:text-gray-900" />
           <span className="text-gray-700 font-medium group-hover:text-gray-900">
@@ -67,7 +66,7 @@ const Sidebar = () => {
         </Link>
         <Link
           href="/settings"
-          className="flex items-center gap-3 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
+          className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
         >
           <Settings
             size={20}

@@ -39,7 +39,7 @@ const Login = () => {
         login(data.user, data.token);
       }
 
-      window.location.href = "/home";
+      window.location.href = "/";
     } catch (error) {
       console.error("Login error:", error);
       setError("Failed to login. Please try again.");
@@ -115,9 +115,9 @@ const Login = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gray-900 text-white py-3 rounded-lg font-medium
-                       hover:bg-gray-800 transition duration-200 
-                       disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gray-900 text-white py-3.5 rounded-xl font-semibold
+                       hover:bg-gray-800 transition-all duration-200 
+                       active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </button>

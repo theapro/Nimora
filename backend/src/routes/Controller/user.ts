@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import mysql from "mysql2/promise";
+import pool from "../../utils/db";
 import crypto from "crypto";
 import { verifyToken, saveToken } from "../../middlewares/auth";
 import { upload } from "../../middlewares/upload";
@@ -10,28 +10,10 @@ interface AuthRequest extends Request {
 
 class UserController {
   public router = Router();
-  private db!: mysql.Pool;
+  private db = pool;
 
   constructor() {
     this.initializeRoutes();
-    this.initializeDatabase();
-  }
-
-  private initializeDatabase() {
-    try {
-      this.db = mysql.createPool({
-        host: process.env.HOST || "localhost",
-        user: process.env.USER || "root",
-        password: process.env.PASSWORD || "",
-        database: process.env.DATABASE || "nimora",
-        port: parseInt(process.env.DB_PORT || "3306"),
-        waitForConnections: true,
-        connectionLimit: 10,
-      });
-      console.log("Database pool created successfully");
-    } catch (error) {
-      console.error("Database initialization error:", error);
-    }
   }
 
   private initializeRoutes() {
@@ -44,7 +26,7 @@ class UserController {
       "/user/:id/upload",
       verifyToken,
       upload.single("profileImage"),
-      this.uploadProfileImage
+      this.uploadProfileImage,
     );
 
     // Follow routes
@@ -55,11 +37,22 @@ class UserController {
     this.router.get(
       "/user/:id/follow/check",
       verifyToken,
-      this.checkFollowStatus
+      this.checkFollowStatus,
     );
 
+    // User posts routes
+    this.router.get("/user/:id/commented", verifyToken, this.getCommentedPosts);
+    this.router.get("/user/:id/liked", verifyToken, this.getLikedPosts);
+    this.router.get("/user/:id/saved", verifyToken, this.getSavedPosts);
+    this.router.get("/user/:id/posts/count", verifyToken, this.getPostsCount);
+
+    // Save post routes
+    this.router.post("/posts/:id/save", verifyToken, this.savePost);
+    this.router.delete("/posts/:id/save", verifyToken, this.unsavePost);
+    this.router.get("/posts/:id/save/check", verifyToken, this.checkSaveStatus);
+
     console.log(
-      "User routes initialized: /api/auth/register, /api/auth/login, /api/user/:id"
+      "User routes initialized: /api/auth/register, /api/auth/login, /api/user/:id",
     );
   }
 
@@ -89,7 +82,7 @@ class UserController {
 
       const [result] = await this.db.execute(
         "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-        [username, email, hashedPassword]
+        [username, email, hashedPassword],
       );
 
       res.status(201).json({
@@ -119,7 +112,7 @@ class UserController {
 
       const [rows] = await this.db.execute(
         "SELECT * FROM users WHERE email = ?",
-        [email]
+        [email],
       );
 
       const hashedPassword = this.hashPassword(password);
@@ -182,7 +175,7 @@ class UserController {
           (SELECT COUNT(*) FROM posts WHERE user_id = users.id) as posts_count
         FROM users 
         WHERE id = ?`,
-        [id]
+        [id],
       );
 
       if ((rows as any).length === 0) {
@@ -250,7 +243,7 @@ class UserController {
 
       const [result] = await this.db.execute(
         `UPDATE users SET ${updates.join(", ")} WHERE id = ?`,
-        values
+        values,
       );
 
       if ((result as any).affectedRows === 0) {
@@ -259,7 +252,7 @@ class UserController {
 
       const [rows] = await this.db.execute(
         "SELECT id, username, email, profile_image, bio, profession, location, website, created_at FROM users WHERE id = ?",
-        [id]
+        [id],
       );
 
       res.status(200).json({
@@ -297,7 +290,7 @@ class UserController {
 
       const [rows] = await this.db.execute(
         "SELECT id, username, email, profile_image, bio, profession, location, website, created_at FROM users WHERE id = ?",
-        [id]
+        [id],
       );
 
       res.status(200).json({
@@ -327,7 +320,7 @@ class UserController {
       // Check if user exists
       const [userExists] = await this.db.execute(
         "SELECT id FROM users WHERE id = ?",
-        [id]
+        [id],
       );
 
       if ((userExists as any).length === 0) {
@@ -337,7 +330,7 @@ class UserController {
       // Check if already following
       const [existing] = await this.db.execute(
         "SELECT id FROM followers WHERE follower_id = ? AND following_id = ?",
-        [followerId, id]
+        [followerId, id],
       );
 
       if ((existing as any).length > 0) {
@@ -346,7 +339,7 @@ class UserController {
 
       await this.db.execute(
         "INSERT INTO followers (follower_id, following_id) VALUES (?, ?)",
-        [followerId, id]
+        [followerId, id],
       );
 
       res.status(201).json({ message: "Successfully followed user" });
@@ -367,7 +360,7 @@ class UserController {
 
       const [result] = await this.db.execute(
         "DELETE FROM followers WHERE follower_id = ? AND following_id = ?",
-        [followerId, id]
+        [followerId, id],
       );
 
       if ((result as any).affectedRows === 0) {
@@ -396,7 +389,7 @@ class UserController {
         JOIN users ON followers.follower_id = users.id
         WHERE followers.following_id = ?
         ORDER BY followers.created_at DESC`,
-        [id]
+        [id],
       );
 
       res.status(200).json({ followers: rows });
@@ -421,7 +414,7 @@ class UserController {
         JOIN users ON followers.following_id = users.id
         WHERE followers.follower_id = ?
         ORDER BY followers.created_at DESC`,
-        [id]
+        [id],
       );
 
       res.status(200).json({ following: rows });
@@ -442,12 +435,322 @@ class UserController {
 
       const [rows] = await this.db.execute(
         "SELECT id FROM followers WHERE follower_id = ? AND following_id = ?",
-        [followerId, id]
+        [followerId, id],
       );
 
       res.status(200).json({ isFollowing: (rows as any).length > 0 });
     } catch (error) {
       console.error("Check follow status error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private getCommentedPosts = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const requestUserId = req.userId;
+
+      if (!requestUserId || requestUserId !== parseInt(id)) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const [rows] = await this.db.execute(
+        `SELECT 
+          posts.id,
+          posts.title,
+          posts.content,
+          posts.cover_image,
+          posts.created_at,
+          users.id as author_id,
+          users.username as author_username,
+          users.profile_image as author_profile_image,
+          users.bio as author_bio,
+          users.profession as author_profession,
+          (SELECT COUNT(*) FROM likes WHERE post_id = posts.id) as likes,
+          (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comments,
+          (
+            SELECT JSON_ARRAYAGG(tags.name)
+            FROM post_tags
+            JOIN tags ON post_tags.tag_id = tags.id
+            WHERE post_tags.post_id = posts.id
+          ) as tags,
+          MAX(comments.created_at) as last_comment_at
+        FROM comments
+        JOIN posts ON comments.post_id = posts.id
+        JOIN users ON posts.user_id = users.id
+        WHERE comments.user_id = ?
+        GROUP BY posts.id, posts.title, posts.content, posts.cover_image, posts.created_at,
+                 users.id, users.username, users.profile_image, users.bio, users.profession
+        ORDER BY last_comment_at DESC`,
+        [id],
+      );
+
+      const posts = (rows as any[]).map((row) => {
+        return {
+          id: row.id,
+          title: row.title,
+          content: row.content,
+          coverImage: row.cover_image,
+          tags: row.tags || [],
+          created_at: row.created_at,
+          author: {
+            id: row.author_id,
+            username: row.author_username,
+            profile_image: row.author_profile_image,
+            bio: row.author_bio,
+            profession: row.author_profession,
+          },
+          likes: row.likes,
+          comments: row.comments,
+        };
+      });
+
+      res.status(200).json({ posts });
+    } catch (error) {
+      console.error("Get commented posts error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private getLikedPosts = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const requestUserId = req.userId;
+
+      if (!requestUserId || requestUserId !== parseInt(id)) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const [rows] = await this.db.execute(
+        `SELECT 
+          posts.id,
+          posts.title,
+          posts.content,
+          posts.cover_image,
+          posts.created_at,
+          users.id as author_id,
+          users.username as author_username,
+          users.profile_image as author_profile_image,
+          users.bio as author_bio,
+          users.profession as author_profession,
+          (SELECT COUNT(*) FROM likes WHERE post_id = posts.id) as likes,
+          (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comments,
+          (
+            SELECT JSON_ARRAYAGG(tags.name)
+            FROM post_tags
+            JOIN tags ON post_tags.tag_id = tags.id
+            WHERE post_tags.post_id = posts.id
+          ) as tags
+        FROM likes
+        JOIN posts ON likes.post_id = posts.id
+        JOIN users ON posts.user_id = users.id
+        WHERE likes.user_id = ?
+        ORDER BY likes.created_at DESC`,
+        [id],
+      );
+
+      const posts = (rows as any[]).map((row) => {
+        return {
+          id: row.id,
+          title: row.title,
+          content: row.content,
+          coverImage: row.cover_image,
+          tags: row.tags || [],
+          created_at: row.created_at,
+          author: {
+            id: row.author_id,
+            username: row.author_username,
+            profile_image: row.author_profile_image,
+            bio: row.author_bio,
+            profession: row.author_profession,
+          },
+          likes: row.likes,
+          comments: row.comments,
+        };
+      });
+
+      res.status(200).json({ posts });
+    } catch (error) {
+      console.error("Get liked posts error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private getSavedPosts = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const requestUserId = req.userId;
+
+      if (!requestUserId || requestUserId !== parseInt(id)) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const [rows] = await this.db.execute(
+        `SELECT 
+          posts.id,
+          posts.title,
+          posts.content,
+          posts.cover_image,
+          posts.created_at,
+          users.id as author_id,
+          users.username as author_username,
+          users.profile_image as author_profile_image,
+          users.bio as author_bio,
+          users.profession as author_profession,
+          (SELECT COUNT(*) FROM likes WHERE post_id = posts.id) as likes,
+          (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) as comments,
+          (
+            SELECT JSON_ARRAYAGG(tags.name)
+            FROM post_tags
+            JOIN tags ON post_tags.tag_id = tags.id
+            WHERE post_tags.post_id = posts.id
+          ) as tags
+        FROM saved_posts
+        JOIN posts ON saved_posts.post_id = posts.id
+        JOIN users ON posts.user_id = users.id
+        WHERE saved_posts.user_id = ?
+        ORDER BY saved_posts.created_at DESC`,
+        [id],
+      );
+
+      const posts = (rows as any[]).map((row) => {
+        return {
+          id: row.id,
+          title: row.title,
+          content: row.content,
+          coverImage: row.cover_image,
+          tags: row.tags || [],
+          created_at: row.created_at,
+          author: {
+            id: row.author_id,
+            username: row.author_username,
+            profile_image: row.author_profile_image,
+            bio: row.author_bio,
+            profession: row.author_profession,
+          },
+          likes: row.likes,
+          comments: row.comments,
+        };
+      });
+
+      res.status(200).json({ posts });
+    } catch (error) {
+      console.error("Get saved posts error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private getPostsCount = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const requestUserId = req.userId;
+
+      if (!requestUserId || requestUserId !== parseInt(id)) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      // Get count of posts created by user
+      const [totalRows] = await this.db.execute(
+        "SELECT COUNT(*) as count FROM posts WHERE user_id = ?",
+        [id],
+      );
+
+      // Get count of posts commented by user
+      const [commentedRows] = await this.db.execute(
+        "SELECT COUNT(DISTINCT post_id) as count FROM comments WHERE user_id = ?",
+        [id],
+      );
+
+      // Get count of posts liked by user
+      const [likedRows] = await this.db.execute(
+        "SELECT COUNT(*) as count FROM likes WHERE user_id = ?",
+        [id],
+      );
+
+      // Get count of saved posts
+      const [savedRows] = await this.db.execute(
+        "SELECT COUNT(*) as count FROM saved_posts WHERE user_id = ?",
+        [id],
+      );
+
+      res.status(200).json({
+        total: (totalRows as any)[0].count,
+        commented: (commentedRows as any)[0].count,
+        liked: (likedRows as any)[0].count,
+        saved: (savedRows as any)[0].count,
+      });
+    } catch (error) {
+      console.error("Get posts count error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private savePost = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      await this.db.execute(
+        "INSERT INTO saved_posts (user_id, post_id) VALUES (?, ?)",
+        [userId, id],
+      );
+
+      res.status(201).json({ message: "Post saved successfully" });
+    } catch (error: any) {
+      if (error.code === "ER_DUP_ENTRY") {
+        return res.status(400).json({ error: "Post already saved" });
+      }
+      console.error("Save post error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private unsavePost = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [result] = await this.db.execute(
+        "DELETE FROM saved_posts WHERE user_id = ? AND post_id = ?",
+        [userId, id],
+      );
+
+      if ((result as any).affectedRows === 0) {
+        return res.status(404).json({ error: "Post not saved" });
+      }
+
+      res.status(200).json({ message: "Post unsaved successfully" });
+    } catch (error) {
+      console.error("Unsave post error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private checkSaveStatus = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.userId;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [rows] = await this.db.execute(
+        "SELECT id FROM saved_posts WHERE user_id = ? AND post_id = ?",
+        [userId, id],
+      );
+
+      res.status(200).json({ isSaved: (rows as any).length > 0 });
+    } catch (error) {
+      console.error("Check save status error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   };

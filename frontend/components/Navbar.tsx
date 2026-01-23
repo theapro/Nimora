@@ -1,17 +1,56 @@
 "use client";
 
-import React from "react";
-import { Search, LogOut, User, Settings } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Search,
+  LogOut,
+  User,
+  Settings,
+  FileText,
+  Users as UsersIcon,
+  Loader2,
+  Bookmark,
+} from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { apiCall } from "@/utils/api";
+
+interface SearchPost {
+  id: number;
+  title: string;
+  cover_image?: string;
+  username: string;
+}
+
+interface SearchUser {
+  id: number;
+  username: string;
+  profile_image?: string;
+  profession?: string;
+}
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [showProfileModal, setShowProfileModal] = React.useState(false);
-  const modalRef = React.useRef<HTMLDivElement>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{
+    posts: SearchPost[];
+    users: SearchUser[];
+  }>({ posts: [], users: [] });
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setShowResults(true);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -19,7 +58,35 @@ const Navbar = () => {
     setShowProfileModal(false);
   };
 
-  React.useEffect(() => {
+  // Debounced search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.trim().length >= 2) {
+        setIsSearching(true);
+        setShowResults(true);
+        try {
+          const response = await apiCall(
+            `http://localhost:3001/api/search?q=${encodeURIComponent(searchQuery)}`,
+          );
+          if (response.ok) {
+            const data = await response.json();
+            setSearchResults(data);
+          }
+        } catch (error) {
+          console.error("Search error:", error);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults({ posts: [], users: [] });
+        setShowResults(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         modalRef.current &&
@@ -27,42 +94,177 @@ const Navbar = () => {
       ) {
         setShowProfileModal(false);
       }
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowResults(false);
+      }
     };
 
-    if (showProfileModal) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showProfileModal]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <>
-      <div className="sticky z-100 top-0 px-2.5 py-2 border-b border-[#e4e4e4] backdrop-blur-3xl text-sm flex items-center justify-between">
+    <nav className="sticky z-100 top-0 border-b border-[#e4e4e4] bg-white/80 backdrop-blur-md">
+      <div className="max-w-[1500px] mx-auto px-4 h-16 flex items-center justify-between">
         <div>
           <h1 className="text-3xl" style={{ fontFamily: "var(--font-judson)" }}>
-            <Link href="/home">Nimora</Link>
+            <Link href="/" className="hover:opacity-80 transition-opacity">
+              Nimora
+            </Link>
           </h1>
         </div>
-        <div className="flex items-center gap-2.5">
-          <div className="flex gap-2.5 items-center">
-            <input
-              placeholder="Search"
-              className="px-2 ring h-8 w-100 ring-[#e3e3e3] bg-white rounded outline-none"
-              type="text"
-            />
-            <button
-              className=" h-8 w-8 rounded flex cursor-pointer duration-300
-             items-center justify-center border border-[#e3e3e3] bg-white hover:bg-gray-100"
-            >
-              <Search className="w-4" />
-            </button>
+
+        <div className="flex items-center gap-4">
+          <div ref={searchRef} className="relative">
+            <form onSubmit={handleSearch} className="flex items-center gap-3">
+              <input
+                placeholder="Search"
+                className="px-4 py-2 ring-1 h-9 w-80 ring-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white focus:ring-blue-400 rounded-full outline-none transition-all text-sm"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() =>
+                  searchQuery.trim().length >= 2 && setShowResults(true)
+                }
+              />
+              <button
+                type="submit"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors"
+              >
+                {isSearching ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+              </button>
+            </form>
+
+            {/* Search Results Dropdown */}
+            {showResults && searchQuery.trim().length >= 2 && (
+              <div className="absolute top-11 left-0 w-full bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in transition-all duration-200">
+                <div className="max-h-[450px] overflow-y-auto custom-scrollbar">
+                  {isSearching ? (
+                    <div className="p-8 text-center">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
+                      <p className="text-sm text-gray-500">Searching...</p>
+                    </div>
+                  ) : searchResults.posts.length === 0 &&
+                    searchResults.users.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <p className="text-sm text-gray-500 text-medium">
+                        No results found for &quot;{searchQuery}&quot;
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="py-2">
+                      {/* Posts Section */}
+                      {searchResults.posts.length > 0 && (
+                        <div className="mb-2">
+                          <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <FileText className="w-3 h-3" />
+                            Posts
+                          </div>
+                          {searchResults.posts.map((post) => (
+                            <Link
+                              key={post.id}
+                              href={`/home/routes/post/${post.id}`}
+                              onClick={() => setShowResults(false)}
+                              className="block px-4 py-3 hover:bg-blue-50 transition-colors group"
+                            >
+                              <div className="flex gap-3">
+                                {post.cover_image && (
+                                  <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 relative">
+                                    <Image
+                                      src={`http://localhost:3001/uploads/${post.cover_image}`}
+                                      alt=""
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 line-clamp-1 transition-colors">
+                                    {post.title}
+                                  </h4>
+                                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                    by{" "}
+                                    <span className="text-gray-700 font-medium">
+                                      @{post.username}
+                                    </span>
+                                  </p>
+                                </div>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Divider */}
+                      {searchResults.posts.length > 0 &&
+                        searchResults.users.length > 0 && (
+                          <div className="mx-4 my-2 border-t border-gray-50" />
+                        )}
+
+                      {/* Users Section */}
+                      {searchResults.users.length > 0 && (
+                        <div>
+                          <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <UsersIcon className="w-3 h-3" />
+                            Users
+                          </div>
+                          <div className="grid grid-cols-1 gap-1">
+                            {searchResults.users.map((u) => (
+                              <Link
+                                key={u.id}
+                                href={`/profile/${u.id}`}
+                                onClick={() => setShowResults(false)}
+                                className="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors group"
+                              >
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border border-white relative">
+                                  {u.profile_image ? (
+                                    <Image
+                                      src={
+                                        u.profile_image.startsWith("http")
+                                          ? u.profile_image
+                                          : `http://localhost:3001/uploads/${u.profile_image}`
+                                      }
+                                      alt=""
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  ) : (
+                                    <span className="text-xs font-bold text-blue-600">
+                                      {u.username.charAt(0).toUpperCase()}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                                    {u.username}
+                                  </h4>
+                                  {u.profession && (
+                                    <p className="text-[10px] text-gray-400 truncate">
+                                      {u.profession}
+                                    </p>
+                                  )}
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <Link href="/home/routes/post/create">
-              <button className="border border-[#0095FF] text-[#0095FF] bg-white cursor-pointer duration-300 h-8 rounded px-10">
+              <button className="bg-gray-900 text-white font-semibold h-9 rounded-xl px-8 hover:bg-gray-800 transition-all active:scale-95 shadow-sm">
                 Create post
               </button>
             </Link>
@@ -106,12 +308,20 @@ const Navbar = () => {
                   </div>
                   <div className="py-1">
                     <Link
-                      href="/profile"
+                      href="/home/routes/profile"
                       onClick={() => setShowProfileModal(false)}
                       className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors"
                     >
                       <User className="w-4 h-4 text-gray-600" />
                       <span className="text-gray-700">Profile</span>
+                    </Link>
+                    <Link
+                      href="/home/routes/saved-posts"
+                      onClick={() => setShowProfileModal(false)}
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors"
+                    >
+                      <Bookmark className="w-4 h-4 text-gray-600" />
+                      <span className="text-gray-700">Saved Posts</span>
                     </Link>
                     <Link
                       href="/settings"
@@ -135,9 +345,15 @@ const Navbar = () => {
               )}
             </div>
           ) : (
-            <div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/auth/login"
+                className="text-gray-600 font-semibold text-sm hover:text-gray-900 px-4 py-2"
+              >
+                Sign In
+              </Link>
               <Link href="/auth/register">
-                <button className="bg-white border border-[#e3e3e3] cursor-pointer h-8 rounded px-10">
+                <button className="bg-gray-900 text-white font-semibold h-9 rounded-xl px-8 hover:bg-gray-800 transition-all active:scale-95 shadow-sm text-sm">
                   Sign Up
                 </button>
               </Link>
@@ -145,7 +361,7 @@ const Navbar = () => {
           )}
         </div>
       </div>
-    </>
+    </nav>
   );
 };
 
