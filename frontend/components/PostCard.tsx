@@ -3,7 +3,15 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, MessageCircle, UserPlus, UserCheck } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  UserPlus,
+  UserCheck,
+  Bookmark,
+  BookmarkCheck,
+  Clock,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { apiCall } from "@/utils/api";
 
@@ -23,23 +31,38 @@ interface PostCardProps {
   };
   likes?: number;
   comments?: number;
+  initialIsLiked?: boolean;
+  initialIsSaved?: boolean;
 }
 
 const PostCard: React.FC<PostCardProps> = ({
   id,
   title,
+  content,
+  coverImage,
   tags = [],
   createdAt,
   author,
   likes: initialLikes = 0,
   comments,
+  initialIsLiked = false,
+  initialIsSaved = false,
 }) => {
   const { user } = useAuth();
   const [likes, setLikes] = useState(initialLikes);
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [isLiking, setIsLiking] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(initialIsSaved);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const calculateReadingTime = (text: string) => {
+    const wordsPerMinute = 200;
+    const words = text.split(/\s+/).length;
+    const minutes = Math.ceil(words / wordsPerMinute);
+    return minutes;
+  };
 
   useEffect(() => {
     // Check if user liked this post
@@ -48,7 +71,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
       try {
         const response = await apiCall(
-          `http://localhost:3001/api/posts/${id}/like/check`
+          `http://localhost:3001/api/posts/${id}/like/check`,
         );
 
         if (response.ok) {
@@ -66,7 +89,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
       try {
         const response = await apiCall(
-          `http://localhost:3001/api/user/${author.id}/follow/check`
+          `http://localhost:3001/api/user/${author.id}/follow/check`,
         );
 
         if (response.ok) {
@@ -84,10 +107,13 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}/${month}/${day}`;
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "numeric",
+      year:
+        date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+    };
+    return date.toLocaleDateString("en-US", options);
   };
 
   const handleLike = async (e: React.MouseEvent) => {
@@ -110,7 +136,7 @@ const PostCard: React.FC<PostCardProps> = ({
           `http://localhost:3001/api/posts/${id}/like`,
           {
             method: "DELETE",
-          }
+          },
         );
 
         if (response.ok) {
@@ -124,7 +150,7 @@ const PostCard: React.FC<PostCardProps> = ({
           `http://localhost:3001/api/posts/${id}/like`,
           {
             method: "POST",
-          }
+          },
         );
 
         if (response.ok) {
@@ -137,6 +163,37 @@ const PostCard: React.FC<PostCardProps> = ({
       console.error("Error toggling like:", error);
     } finally {
       setIsLiking(false);
+    }
+  };
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      window.location.href = "/auth/login";
+      return;
+    }
+
+    if (isSaving) return;
+    setIsSaving(true);
+
+    try {
+      const method = isSaved ? "DELETE" : "POST";
+      const response = await apiCall(
+        `http://localhost:3001/api/posts/${id}/save`,
+        {
+          method,
+        },
+      );
+
+      if (response.ok) {
+        setIsSaved(!isSaved);
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -160,7 +217,7 @@ const PostCard: React.FC<PostCardProps> = ({
           `http://localhost:3001/api/user/${author.id}/unfollow`,
           {
             method: "DELETE",
-          }
+          },
         );
 
         if (response.ok) {
@@ -172,7 +229,7 @@ const PostCard: React.FC<PostCardProps> = ({
           `http://localhost:3001/api/user/${author.id}/follow`,
           {
             method: "POST",
-          }
+          },
         );
 
         if (response.ok) {
@@ -187,102 +244,145 @@ const PostCard: React.FC<PostCardProps> = ({
   };
 
   return (
-    <Link href={`/home/routes/post/${id}`}>
-      <div className="bg-white w-200 border font-poppins border-gray-200 rounded mb-2.5 p-6 gap-10  cursor-pointer">
-        {/* Author Info */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white font-semibold overflow-hidden">
-              {author?.profileImage ? (
-                <Image
-                  src={
-                    author.profileImage.startsWith("/uploads/")
-                      ? `http://localhost:3001${author.profileImage}`
-                      : `http://localhost:3001/uploads/${author.profileImage}`
-                  }
-                  alt={author.username || "User"}
-                  width={40}
-                  height={40}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                author?.username?.charAt(0).toUpperCase()
-              )}
+    <Link href={`/home/routes/post/${id}`} className="block">
+      <div className="bg-white w-full border font-poppins border-gray-100 rounded-2xl mb-5 overflow-hidden hover:border-blue-300 hover:shadow-xs transition-all cursor-pointer group">
+        {/* Post Cover Image */}
+        {coverImage && (
+          <div className="w-full h-40 sm:h-56 relative overflow-hidden">
+            <Image
+              src={`http://localhost:3001/uploads/${coverImage}`}
+              alt={title}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+        )}
+
+        <div className="p-5">
+          {/* Author Info */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-700 text-xs font-bold overflow-hidden">
+                {author?.profileImage ? (
+                  <Image
+                    src={
+                      author.profileImage.startsWith("/uploads/")
+                        ? `http://localhost:3001${author.profileImage}`
+                        : `http://localhost:3001/uploads/${author.profileImage}`
+                    }
+                    alt={author.username || "User"}
+                    width={36}
+                    height={36}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  author?.username?.charAt(0).toUpperCase()
+                )}
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  {author?.username}
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium text-gray-400">
+                    {formatDate(createdAt)}
+                  </span>
+                  <span className="text-gray-200">•</span>
+                  <div className="flex items-center gap-1 text-[10px] font-medium text-gray-400">
+                    <Clock className="w-3 h-3" />
+                    <span>{calculateReadingTime(content || "")} min read</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm text-gray-900">{author?.username}</h3>
-              {author?.profession && (
-                <p className="text-sm text-[#615858]">{author.profession}</p>
-              )}
-            </div>
+
+            {/* Follow Button - only show if not own post */}
+            {user && user.id !== author.id && (
+              <button
+                onClick={handleFollow}
+                disabled={isFollowLoading}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  isFollowing
+                    ? "bg-gray-100 text-gray-600 hover:bg-gray-200 shadow-xs"
+                    : "bg-gray-900 text-white hover:bg-gray-800 shadow-sm active:scale-95"
+                }`}
+              >
+                {isFollowing ? (
+                  <>
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>Following</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Follow</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
-          {/* Follow Button - only show if not own post */}
-          {user && user.id !== author.id && (
-            <button
-              onClick={handleFollow}
-              disabled={isFollowLoading}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                isFollowing
-                  ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  : "bg-gray-700 text-white hover:bg-gray-800"
-              }`}
-            >
-              {isFollowing ? (
-                <>
-                  <UserCheck className="w-4 h-4" />
-                  <span>Following</span>
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-4 h-4" />
-                  <span>Follow</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
-        <div className="flex flex-col ml-11 px-2 gap-10">
-          <div>
+          <div className="sm:ml-12">
             {/* Post Title */}
-            <h2 className="text-3xl w-xl font-semibold text-gray-900 mb-3 leading-tight">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 leading-tight group-hover:text-blue-600 transition-colors">
               {title}
             </h2>
 
             {/* Tags */}
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
+            {tags && tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-5">
                 {tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="text-sm text-[#615858] hover:text-gray-900"
+                    className="text-[11px] font-medium text-gray-400 hover:text-blue-600"
                   >
                     #{tag}
                   </span>
                 ))}
               </div>
             )}
-          </div>
 
-          {/* Footer - Stats and Date */}
-          <div className="flex items-center justify-between text-gray-600 text-sm">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleLike}
-                disabled={isLiking}
-                className={`flex items-center gap-1 transition-colors ${
-                  isLiked ? "text-red-500" : "hover:text-red-500"
-                }`}
-              >
-                <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
-                <span>{likes}</span>
-              </button>
-              <div className="flex items-center gap-1">
-                <MessageCircle className="w-4 h-4" />
-                <span>{comments}</span>
+            {/* Footer - Stats and Actions */}
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
+              <div className="flex items-center gap-5">
+                <button
+                  onClick={handleLike}
+                  disabled={isLiking}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg transition-colors ${
+                    isLiked
+                      ? "text-red-500 bg-red-50"
+                      : "text-gray-400 hover:bg-gray-100 hover:text-red-500"
+                  }`}
+                >
+                  <Heart
+                    className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`}
+                  />
+                  <span className="font-bold text-xs">{likes}</span>
+                </button>
+                <div className="flex items-center gap-1.5 text-gray-400 px-2 py-1 rounded-lg hover:bg-gray-100 hover:text-blue-500 transition-colors">
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="font-bold text-xs">{comments}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isSaved
+                      ? "text-blue-600 bg-blue-50"
+                      : "text-gray-300 hover:bg-gray-100 hover:text-blue-600"
+                  }`}
+                >
+                  {isSaved ? (
+                    <BookmarkCheck className="w-4.5 h-4.5 fill-current" />
+                  ) : (
+                    <Bookmark className="w-4.5 h-4.5" />
+                  )}
+                </button>
               </div>
             </div>
-            <time className="text-gray-500">{formatDate(createdAt)}</time>
           </div>
         </div>
       </div>

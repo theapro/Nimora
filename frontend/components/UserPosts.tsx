@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import UserPostCard from "./UserPostCard";
 import { useAuth } from "@/context/AuthContext";
+import { PostCardSkeleton } from "./SkeletonLoader";
 
 interface Post {
   id: number;
@@ -32,7 +33,7 @@ const UserPosts = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/users/${user.id}/posts`
+        `http://localhost:3001/api/users/${user.id}/posts`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -65,8 +66,10 @@ const UserPosts = () => {
 
   if (loading) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-600">Loading your posts...</p>
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <PostCardSkeleton key={i} />
+        ))}
       </div>
     );
   }
@@ -80,8 +83,7 @@ const UserPosts = () => {
   }
 
   return (
-    <div className="">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Posts</h2>
+    <div className="space-y-4">
       {posts.map((post) => (
         <UserPostCard
           key={post.id}

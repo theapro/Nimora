@@ -42,64 +42,67 @@ const CategorySidebar: React.FC<CategorySidebarProps> = ({
 
   if (loading) {
     return (
-      <div className="w-64 bg-white rounded-lg border border-gray-200 p-4">
-        <p className="text-gray-600 text-sm">Loading communities...</p>
+      <div className="bg-white w-19 rounded-2xl border border-gray-200 p-4">
+        <p className="text-gray-500 text-sm">...</p>
       </div>
     );
   }
 
   return (
-    <div className="sticky left-2.5 z-40 top-16 h-[calc(100vh-2.2rem-2.5rem)] bg-white rounded border border-[#e4e4e4] p-2">
-      <div className="space-y-2">
-        {/* All Communities Link */}
-        <div
-          onClick={() => onCommunitySelect(null)}
-          className={`block rounded transition-all hover:bg-gray-50 cursor-pointer ${
-            selectedCommunityId === null
-              ? "bg-gray-100 border border-gray-300"
-              : ""
-          }`}
-        >
-          <div className="items-center gap-3">
-            <div className="w-12 h-12 border border-[#e4e4e4] rounded object-cover bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+    <div className="sticky top-20 w-19 z-40 h-[calc(100vh-120px)] bg-white rounded-2xl border border-[#e4e4e4] py-3 px-2 overflow-y-auto no-scrollbar">
+      <div className="flex flex-col gap-2">
 
+        {/* All Communities */}
+        <button
+          onClick={() => onCommunitySelect(null)}
+          className={`flex items-center justify-center w-full p-2 rounded-xl transition-all
+            ${
+              selectedCommunityId === null
+                ? "bg-black text-white"
+                : "hover:bg-gray-100"
+            }`}
+        >
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+              />
+            </svg>
+          </div>
+        </button>
+
+        {/* Communities */}
         {communities.length === 0 ? (
-          <p className="text-gray-500 text-sm">No communities available</p>
+          <p className="text-gray-500 text-sm px-2">No communities</p>
         ) : (
           communities.map((community) => {
             const isActive = selectedCommunityId === community.id;
+
             return (
-              <div
+              <button
                 key={community.id}
                 onClick={() => onCommunitySelect(community.id)}
-                className={`block rounded transition-all hover:bg-gray-50 cursor-pointer ${
-                  isActive ? "bg-gray-100 border border-gray-900" : ""
-                }`}
+                className={`flex items-center justify-center w-full p-2 rounded-xl transition-all
+                  ${
+                    isActive
+                      ? "bg-gray-900 text-white"
+                      : "hover:bg-gray-100"
+                  }`}
               >
-                <div className="items-center gap-3">
-                  <img
-                    src={`http://localhost:3001/uploads/${community.image}`}
-                    alt={community.title}
-                    className="w-12 h-12 border border-[#e4e4e4] rounded object-cover"
-                  />
-                </div>
-              </div>
+                <img
+                  src={`http://localhost:3001/uploads/${community.image}`}
+                  alt={community.title}
+                  className="w-11 h-11 rounded-xl object-cover border"
+                />
+              </button>
             );
           })
         )}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import {
   Bold,
@@ -12,12 +13,14 @@ import {
   Quote,
   Code,
   CodeSquare,
-  Zap,
   Image as ImageIcon,
   MoreHorizontal,
   X,
   Upload,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
+import { apiCall } from "@/utils/api";
 
 interface Community {
   id: number;
@@ -27,6 +30,7 @@ interface Community {
 }
 
 const CreatePost = () => {
+  const router = useRouter();
   const [content, setContent] = React.useState("");
   const [title, setTitle] = React.useState("");
   const [tags, setTags] = React.useState<string[]>([]);
@@ -35,8 +39,11 @@ const CreatePost = () => {
   const [coverImagePreview, setCoverImagePreview] = React.useState<
     string | null
   >(null);
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [communityId, setCommunityId] = useState<number | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [showAiTopicInput, setShowAiTopicInput] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const titleRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -127,26 +134,121 @@ const CreatePost = () => {
     }
   };
 
+  const handleAiGenerate = async () => {
+    if (!aiTopic.trim()) return;
+    setAiLoading(true);
+    try {
+      const response = await apiCall("http://localhost:3001/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: aiTopic }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTitle(data.title);
+        setContent(data.content);
+        if (data.keywords) {
+          setTags((prev) => [...new Set([...prev, ...data.keywords])]);
+        }
+        setShowAiTopicInput(false);
+        setAiTopic("");
+      }
+    } catch (error) {
+      console.error("AI Generate Error:", error);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiTags = async () => {
+    if (!content.trim()) return;
+    setAiLoading(true);
+    try {
+      const response = await apiCall("http://localhost:3001/api/ai/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.tags) {
+          setTags((prev) => [...new Set([...prev, ...data.tags])]);
+        }
+      }
+    } catch (error) {
+      console.error("AI Tags Error:", error);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiSummarize = async () => {
+    if (!content.trim()) return;
+    setAiLoading(true);
+    try {
+      const response = await apiCall("http://localhost:3001/api/ai/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const summaryText = `\n\n### AI Summary\n${data.summary}\n\n**TL;DR:** ${data.tldr}\n\n**Key Points:**\n${data.keyPoints.map((p: string) => `- ${p}`).join("\n")}`;
+        setContent((prev) => prev + summaryText);
+      }
+    } catch (error) {
+      console.error("AI Summarize Error:", error);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiExpand = async () => {
+    if (!content.trim()) return;
+    setAiLoading(true);
+    try {
+      const response = await apiCall("http://localhost:3001/api/ai/expand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setContent(data.expandedContent);
+      }
+    } catch (error) {
+      console.error("AI Expand Error:", error);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !content.trim()) {
-      alert("Please fill in both title and content");
+    if (!content.trim()) {
+      alert("Please fill in content");
       return;
     }
 
-    if (!categoryId) {
-      alert("Please select a category");
+    if (!communityId) {
+      alert("Please select a community");
       return;
     }
 
     const formData = new FormData();
     formData.append("title", title);
     formData.append("content", content);
-    formData.append("category_id", categoryId.toString());
+    formData.append("community_id", communityId.toString());
     formData.append("tags", JSON.stringify(tags));
     if (coverImage) {
       formData.append("coverImage", coverImage);
+    }
+
+    // Debug: Log FormData contents
+    console.log("FormData being sent:");
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
     }
 
     try {
@@ -164,40 +266,108 @@ const CreatePost = () => {
         throw new Error(error.error || "Failed to create post");
       }
 
-      window.location.href = "/home/routes/post";
+      router.push("/home/routes/post");
     } catch (error) {
       console.error("Error creating post:", error);
       console.log(
-        error instanceof Error ? error.message : "Failed to create post"
+        error instanceof Error ? error.message : "Failed to create post",
       );
     }
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-white">
       <Navbar />
-      <div className="flex">
-        <div className="m-2.5 ">
-          <div>
-            <div className="flex justify-between">
-              <div>
-                <h1 className="text-2xl font-semi">Create post</h1>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Create Post</h1>
+          <div className="flex gap-2">
+            {!showAiTopicInput ? (
+              <button
+                type="button"
+                onClick={() => setShowAiTopicInput(true)}
+                className="flex items-center gap-2 px-6 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-all active:scale-95 shadow-sm"
+              >
+                <Sparkles className="w-4 h-4" />
+                Write with AI
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={aiTopic}
+                  onChange={(e) => setAiTopic(e.target.value)}
+                  placeholder="What should I write about?"
+                  className="px-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-gray-900 w-64 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={handleAiGenerate}
+                  disabled={aiLoading}
+                  className="px-6 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-all active:scale-95 shadow-sm disabled:opacity-50"
+                >
+                  {aiLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Generate"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAiTopicInput(false)}
+                  className="p-2 text-gray-400 hover:text-gray-900 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <div className="flex gap-2.5">
-                <div>
-                  <button className="bg-white border text-sm border-[#e3e3e3] px-8.25 h-8 rounded">
-                    Edit
+            )}
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="p-8 space-y-8">
+              {/* Cover Image Upload and AI Tools */}
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-white text-sm font-medium border border-gray-300 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  {coverImage ? "Change cover image" : "Add a cover image"}
+                </button>
+
+                <div className="flex items-center gap-2 border-l border-gray-200 pl-3">
+                  <button
+                    type="button"
+                    onClick={handleAiSummarize}
+                    disabled={aiLoading || !content.trim()}
+                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+                  >
+                    {aiLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 text-purple-600" />
+                    )}
+                    {aiLoading ? "Summarizing..." : "Summarize"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleAiExpand}
+                    disabled={aiLoading || !content.trim()}
+                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+                  >
+                    {aiLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                    )}
+                    {aiLoading ? "Expanding..." : "Expand"}
                   </button>
                 </div>
-                <div>
-                  <button className="bg-white border text-sm border-[#e3e3e3] px-8.25 h-8 rounded">
-                    Preview
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="mt-2.5">
-              <form onSubmit={handleSubmit}>
+
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -205,237 +375,233 @@ const CreatePost = () => {
                   accept="image/*"
                   className="hidden"
                 />
-                <div className="bg-white w-4xl border border-[#e3e3e3] h-screen rounded max-h-[calc(100vh-160px)] overflow-auto">
-                  <div className="p-8 space-y-7">
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="bg-white text-sm shadow-shadow3 hover-sh border border-[#e3e3e3] px-8.25 h-8 rounded flex items-center gap-2"
-                      >
-                        <Upload className="w-4 h-4" />
-                        Upload cover image
-                      </button>
-                      {coverImagePreview && (
-                        <div className="mt-4 relative inline-block">
+                {coverImagePreview && (
+                  <div className="mt-4 relative inline-block">
+                    <img
+                      src={coverImagePreview}
+                      alt="Cover preview"
+                      className="max-w-full max-h-[400px] rounded-lg border border-gray-200 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeCoverImage}
+                      className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm text-gray-700 p-1.5 rounded-full hover:bg-white transition-colors border border-gray-200 shadow-sm"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Title Input */}
+              <div className="flex flex-col">
+                <textarea
+                  ref={titleRef}
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    autoResizeTextarea(e.target);
+                  }}
+                  placeholder="New post title here . . ."
+                  className="text-5xl placeholder-gray-400 outline-none font-bold rounded-lg resize-none overflow-hidden bg-transparent"
+                  rows={1}
+                />
+              </div>
+
+              {/* Community Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wider">
+                  Select Community
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {communities.map((community) => (
+                    <button
+                      key={community.id}
+                      type="button"
+                      onClick={() => setCommunityId(community.id)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                        communityId === community.id
+                          ? "border-blue-500 bg-blue-50/50"
+                          : "border-gray-200 hover:border-gray-300 bg-white"
+                      }`}
+                    >
+                      {community.image && (
+                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-gray-100">
                           <img
-                            src={coverImagePreview}
-                            alt="Cover preview"
-                            className="max-w-md max-h-64 rounded border border-gray-300"
+                            src={`http://localhost:3001/uploads/${community.image}`}
+                            alt={community.title}
+                            className="w-full h-full object-cover"
                           />
-                          <button
-                            type="button"
-                            onClick={removeCoverImage}
-                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
                         </div>
                       )}
-                    </div>
-                    <div className="flex flex-col">
-                      <textarea
-                        ref={titleRef}
-                        value={title}
-                        onChange={(e) => {
-                          setTitle(e.target.value);
-                          autoResizeTextarea(e.target);
-                        }}
-                        placeholder="New post title here . . ."
-                        className="text-5xl placeholder-gray-500 outline-none font-bold rounded resize-none overflow-hidden"
-                        rows={1}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Community *
-                      </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {communities.map((community) => (
-                          <button
-                            key={community.id}
-                            type="button"
-                            onClick={() => setCategoryId(community.id)}
-                            className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                              categoryId === community.id
-                                ? "border-blue-500 bg-blue-50"
-                                : "border-gray-200 hover:border-gray-300"
-                            }`}
-                          >
-                            {community.image && (
-                              <img
-                                src={community.image}
-                                alt={community.title}
-                                className="w-6 h-6 rounded-full object-cover"
-                              />
-                            )}
-                            <span className="font-medium text-gray-900">
-                              {community.title}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={tagInput}
-                          onChange={(e) => setTagInput(e.target.value)}
-                          onKeyDown={handleTagInput}
-                          placeholder="Add tags (press Enter) . . ."
-                          className="text-gray-600 outline-none rounded w-full"
-                        />
-                        {tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {tags.map((tag, index) => (
-                              <span
-                                key={index}
-                                className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2 border border-gray-300"
-                              >
-                                #{tag}
-                                <button
-                                  type="button"
-                                  onClick={() => removeTag(tag)}
-                                  className="hover:text-red-600"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="my-2.5 flex flex-col">
-                    {/* Toolbar */}
-                    <div className="bg-[#f7f7f7] px-5 flex h-13 items-center gap-1 w-full">
-                      <button
-                        type="button"
-                        onClick={handleBold}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Bold"
+                      <span
+                        className={`font-medium text-sm ${communityId === community.id ? "text-blue-700" : "text-gray-700"}`}
                       >
-                        <Bold className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleItalic}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Italic"
-                      >
-                        <Italic className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleLink}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Link"
-                      >
-                        <LinkIcon className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleBulletList}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Bullet List"
-                      >
-                        <List className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleNumberedList}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Numbered List"
-                      >
-                        <ListOrdered className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleHeading}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Heading"
-                      >
-                        <Heading className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleQuote}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Quote"
-                      >
-                        <Quote className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleInlineCode}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Inline Code"
-                      >
-                        <Code className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCodeBlock}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Code Block"
-                      >
-                        <CodeSquare className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Quick Action"
-                      >
-                        <Zap className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleImage}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
-                        title="Image"
-                      >
-                        <ImageIcon className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <button
-                        type="button"
-                        className="p-2 hover:bg-gray-100 rounded transition-colors ml-auto"
-                        title="More options"
-                      >
-                        <MoreHorizontal className="w-5 h-5 text-gray-700" />
-                      </button>
-                    </div>
-                    {/* Text Area */}
-                    <textarea
-                      ref={textareaRef}
-                      value={content}
-                      onChange={(e) => {
-                        setContent(e.target.value);
-                        autoResizeTextarea(e.target);
-                      }}
-                      placeholder="Write your content here . . ."
-                      className="text-gray-600 mt-2.5 px-8 pt-4 placeholder:text-gray-700 outline-none rounded-b resize-none overflow-hidden"
-                      rows={8}
-                    ></textarea>
-                  </div>
+                        {community.title}
+                      </span>
+                    </button>
+                  ))}
                 </div>
+              </div>
+
+              {/* Tags Input */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleTagInput}
+                    placeholder="Add up to 5 tags... (press Enter)"
+                    className="text-gray-600 outline-none rounded-lg flex-1 bg-transparent border-b border-transparent focus:border-gray-200 transition-colors py-2"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAiTags}
+                    disabled={aiLoading || !content.trim()}
+                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+                  >
+                    {aiLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                    )}
+                    {aiLoading ? "Thinking..." : "AI Tags"}
+                  </button>
+                </div>
+                {tags && tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 border border-gray-200"
+                      >
+                        #{tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="hover:text-red-500 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Editor Section */}
+            <div className="flex flex-col border-t border-gray-100">
+              {/* Toolbar */}
+              <div className="bg-gray-50/50 px-6 flex flex-wrap min-h-[52px] items-center gap-1 w-full border-b border-gray-100">
+                <div className="flex gap-1 py-2">
+                  {[
+                    { icon: Bold, action: handleBold, label: "Bold" },
+                    { icon: Italic, action: handleItalic, label: "Italic" },
+                    { icon: LinkIcon, action: handleLink, label: "Link" },
+                  ].map((btn, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={btn.action}
+                      className="p-2 hover:bg-white hover:text-blue-600 rounded-lg transition-all text-gray-500 border border-transparent hover:border-gray-200"
+                      title={btn.label}
+                    >
+                      <btn.icon className="w-5 h-5" />
+                    </button>
+                  ))}
+                </div>
+
+                <div className="w-px h-6 bg-gray-200 mx-2" />
+
+                <div className="flex gap-1 py-2">
+                  {[
+                    { icon: List, action: handleBulletList, label: "List" },
+                    {
+                      icon: ListOrdered,
+                      action: handleNumberedList,
+                      label: "Numbered List",
+                    },
+                    { icon: Heading, action: handleHeading, label: "Heading" },
+                    { icon: Quote, action: handleQuote, label: "Quote" },
+                  ].map((btn, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={btn.action}
+                      className="p-2 hover:bg-white hover:text-blue-600 rounded-lg transition-all text-gray-500 border border-transparent hover:border-gray-200"
+                      title={btn.label}
+                    >
+                      <btn.icon className="w-5 h-5" />
+                    </button>
+                  ))}
+                </div>
+
+                <div className="w-px h-6 bg-gray-200 mx-2" />
+
+                <div className="flex gap-1 py-2">
+                  {[
+                    { icon: Code, action: handleInlineCode, label: "Code" },
+                    {
+                      icon: CodeSquare,
+                      action: handleCodeBlock,
+                      label: "Code Block",
+                    },
+                    { icon: ImageIcon, action: handleImage, label: "Image" },
+                  ].map((btn, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={btn.action}
+                      className="p-2 hover:bg-white hover:text-blue-600 rounded-lg transition-all text-gray-500 border border-transparent hover:border-gray-200"
+                      title={btn.label}
+                    >
+                      <btn.icon className="w-5 h-5" />
+                    </button>
+                  ))}
+                </div>
+
                 <button
-                  type="submit"
-                  className="bg-[#e4e4e4] text-sm mt-2.5 cursor-pointer hover:bg-gray-300 duration-300 h-8 rounded px-10"
+                  type="button"
+                  className="p-2 hover:bg-white text-gray-500 rounded-lg transition-all ml-auto"
                 >
-                  Publish post
+                  <MoreHorizontal className="w-5 h-5" />
                 </button>
-              </form>
+              </div>
+
+              {/* Text Area */}
+              <textarea
+                ref={textareaRef}
+                value={content}
+                onChange={(e) => {
+                  setContent(e.target.value);
+                  autoResizeTextarea(e.target);
+                }}
+                placeholder="Write your story here..."
+                className="text-lg text-gray-700 px-8 py-8 placeholder:text-gray-400 outline-none min-h-[400px] bg-transparent resize-none leading-relaxed"
+              ></textarea>
             </div>
           </div>
-        </div>
-        <div>
-          <div className="border bg-white border-gray-300 mt-5">ppp</div>
-        </div>
+
+          <div className="flex items-center gap-4 pt-4">
+            <button
+              type="submit"
+              className="bg-gray-900 text-white font-semibold h-11 rounded-xl px-12 hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+            >
+              Publish Post
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/home/routes/post")}
+              className="text-gray-600 font-semibold h-11 px-8 rounded-xl hover:bg-gray-100 transition-all border border-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
-    </>
+    </div>
   );
 };
 
