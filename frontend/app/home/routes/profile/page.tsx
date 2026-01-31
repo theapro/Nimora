@@ -844,7 +844,7 @@ const Profile = () => {
                           author={post.author}
                           likes={post.likes}
                           comments={post.comments}
-                          onDelete={fetchPosts}
+                          onDelete={() => fetchPosts(activeTab)}
                         />
                       ) : (
                         <PostCard
