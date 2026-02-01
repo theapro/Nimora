@@ -1,16 +1,14 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "src/index.ts",
-      "use": "@vercel/node"
+  "functions": {
+    "src/index.ts": {
+      "runtime": "@vercel/node"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "src/index.ts"
+      "source": "/(.*)",
+      "destination": "src/index.ts"
     }
-  ],
-  "outputDirectory": "dist"
+  ]
 }
