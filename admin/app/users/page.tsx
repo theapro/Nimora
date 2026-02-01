@@ -52,7 +52,8 @@ export default function UsersPage() {
 
   const handleBanToggle = async (id: number, currentStatus: boolean) => {
     try {
-      await api.put(`/admin/users/${id}/ban`, { is_banned: !currentStatus });
+      fetchUsers();
+      await api.put(`/users/${id}/ban`, { is_banned: !currentStatus });
       fetchUsers();
     } catch (err) {
       console.error(err);
@@ -62,7 +63,8 @@ export default function UsersPage() {
 
   const handleRoleChange = async (id: number, role: User["role"]) => {
     try {
-      await api.put(`/admin/users/${id}/role`, { role });
+      fetchUsers();
+      await api.put(`/users/${id}/role`, { role });
       fetchUsers();
     } catch (err) {
       console.error(err);

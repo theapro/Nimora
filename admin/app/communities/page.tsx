@@ -82,15 +82,13 @@ export default function CommunitiesPage() {
       setUploading(true);
       const formData = new FormData();
       formData.append("communityImage", file);
-
       const response = await api.post(
-        "/admin/communities/upload-image",
+        "/communities/upload-image",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
         },
       );
-
       setNewCommunity((p) => ({
         ...p,
         image: response.data.imageUrl,
@@ -109,14 +107,12 @@ export default function CommunitiesPage() {
         alert("Title and slug are required");
         return;
       }
-
-      await api.post("/admin/communities", {
+      await api.post("/communities", {
         title: newCommunity.title,
         slug: newCommunity.slug,
         description: newCommunity.description || null,
         image: newCommunity.image || null,
       });
-
       setCreateOpen(false);
       setNewCommunity({ title: "", slug: "", description: "", image: "" });
       fetchCommunities();
@@ -129,7 +125,7 @@ export default function CommunitiesPage() {
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this community?")) return;
     try {
-      await api.delete(`/admin/communities/${id}`);
+      await api.delete(`/communities/${id}`);
       fetchCommunities();
     } catch (err) {
       console.error(err);
@@ -139,7 +135,7 @@ export default function CommunitiesPage() {
 
   const handleToggleActive = async (c: Community) => {
     try {
-      await api.put(`/admin/communities/${c.id}`, {
+      await api.put(`/communities/${c.id}`, {
         title: c.title,
         description: c.description || null,
         image: c.image || null,
