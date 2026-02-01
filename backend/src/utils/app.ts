@@ -20,7 +20,11 @@ class App {
 
   private initializeControllers(controllers: any[]) {
     controllers.forEach((controller) => {
+      // Mount under both paths so clients can call either:
+      // - /api/... (preferred)
+      // - /...     (useful for serverless platforms that strip prefixes)
       this.app.use("/api", controller.router);
+      this.app.use("/", controller.router);
     });
   }
 

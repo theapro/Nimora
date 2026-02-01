@@ -24,8 +24,8 @@ export default function AdminGuard({
       setAuth({ allowed: false, redirect: false });
       return;
     }
-    const userStr = window.localStorage.getItem("user");
-    const token = window.localStorage.getItem("token");
+    const userStr = window.localStorage.getItem("adminUser");
+    const token = window.localStorage.getItem("adminToken");
     if (!userStr || !token) {
       setAuth({ allowed: false, redirect: true });
       return;

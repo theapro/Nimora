@@ -52,8 +52,9 @@ export default function UsersPage() {
 
   const handleBanToggle = async (id: number, currentStatus: boolean) => {
     try {
-      fetchUsers();
-      await api.put(`/users/${id}/ban`, { is_banned: !currentStatus });
+      await api.put(`/admin/users/${id}/ban`, {
+        is_banned: !currentStatus,
+      });
       fetchUsers();
     } catch (err) {
       console.error(err);
@@ -63,8 +64,7 @@ export default function UsersPage() {
 
   const handleRoleChange = async (id: number, role: User["role"]) => {
     try {
-      fetchUsers();
-      await api.put(`/users/${id}/role`, { role });
+      await api.put(`/admin/users/${id}/role`, { role });
       fetchUsers();
     } catch (err) {
       console.error(err);
@@ -100,47 +100,56 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All users</CardTitle>
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gray-50/50 border-b border-gray-100">
+          <CardTitle className="text-sm font-bold uppercase tracking-widest text-gray-400">
+            All users
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="py-10 text-center text-sm text-gray-500">
-              Loading…
+            <div className="py-20 text-center">
+              <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-gray-800" />
+              <p className="text-xs text-gray-400 mt-4 font-medium">
+                Fetching users...
+              </p>
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="py-10 text-center text-sm text-gray-500">
-              No results
+            <div className="py-20 text-center text-sm text-gray-500 font-medium">
+              No users found matching your search
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="pl-6">User Identity</TableHead>
+                  <TableHead>Access Level</TableHead>
+                  <TableHead>Account Status</TableHead>
+                  <TableHead className="text-right pr-6">Management</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-gray-900">
-                          {user.username}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {user.email}
-                        </span>
+                  <TableRow key={user.id} className="group">
+                    <TableCell className="pl-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-xs">
+                          {user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 leading-none mb-1">
+                            {user.username}
+                          </span>
+                          <span className="text-[12px] text-gray-400 font-medium">
+                            {user.email}
+                          </span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <ShieldCheck className="h-4 w-4 text-gray-400" />
                         <select
-                          className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm"
+                          className="h-8 rounded-lg border border-gray-100 bg-gray-50/50 px-3 text-[12px] font-bold text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900/5 focus:bg-white transition-all appearance-none cursor-pointer hover:bg-gray-100"
                           value={user.role}
                           onChange={(e) =>
                             handleRoleChange(
@@ -149,27 +158,27 @@ export default function UsersPage() {
                             )
                           }
                         >
-                          <option value="user">user</option>
-                          <option value="moderator">moderator</option>
-                          <option value="admin">admin</option>
+                          <option value="user">USER</option>
+                          <option value="moderator">MODERATOR</option>
+                          <option value="admin">ADMIN</option>
                         </select>
                       </div>
                     </TableCell>
                     <TableCell>
                       {user.is_banned ? (
-                        <Badge variant="destructive">banned</Badge>
+                        <Badge variant="destructive">Banned</Badge>
                       ) : (
-                        <Badge variant="secondary">active</Badge>
+                        <Badge variant="secondary">Active</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right pr-6">
                       <Button
-                        variant={user.is_banned ? "secondary" : "destructive"}
+                        variant={user.is_banned ? "outline" : "destructive"}
                         size="sm"
+                        className="h-8 py-0"
                         onClick={() => handleBanToggle(user.id, user.is_banned)}
                       >
-                        <Ban className="h-4 w-4" />
-                        {user.is_banned ? "Unban" : "Ban"}
+                        {user.is_banned ? "Restore" : "Restrict"}
                       </Button>
                     </TableCell>
                   </TableRow>

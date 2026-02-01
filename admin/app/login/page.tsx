@@ -20,8 +20,8 @@ export default function AdminLogin() {
     try {
       const res = await api.post("/admin/login", { email, password });
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("adminToken", res.data.token);
+      localStorage.setItem("adminUser", JSON.stringify(res.data.user));
 
       router.push("/");
     } catch (err: unknown) {
@@ -35,27 +35,39 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#fdfdfd] px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900">Admin Login</h1>
-          <p className="text-sm text-gray-500 mt-1">Enter your credentials</p>
+        <div className="mb-10 text-center">
+          <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center text-white text-xl font-black mx-auto mb-4 shadow-lg shadow-gray-200">
+            N
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            Welcome Back
+          </h1>
+          <p className="text-sm text-gray-500 mt-2 font-medium">
+            Please enter your admin credentials
+          </p>
         </div>
 
         {error ? (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="mb-6 rounded-xl border border-red-100 bg-red-50/50 p-4 text-sm text-red-600 font-medium">
             {error}
           </div>
         ) : null}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form
+          onSubmit={handleLogin}
+          className="space-y-5 bg-white p-8 rounded-2xl border border-gray-100 shadow-sm"
+        >
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Email</label>
+            <label className="text-[13px] font-semibold text-gray-700 ml-1">
+              Email Address
+            </label>
             <input
               required
               type="email"
               placeholder="admin@nimora.uz"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900"
+              className="w-full rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 focus:bg-white transition-all"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
@@ -64,14 +76,14 @@ export default function AdminLogin() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-[13px] font-semibold text-gray-700 ml-1">
               Password
             </label>
             <input
               required
               type="password"
-              placeholder="Password"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900"
+              placeholder="••••••••"
+              className="w-full rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/5 focus:bg-white transition-all"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
@@ -82,11 +94,15 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-gray-900 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl bg-gray-900 py-3 text-sm font-semibold text-white hover:bg-gray-800 transition-all hover:shadow-lg hover:shadow-gray-200 disabled:cursor-not-allowed disabled:opacity-70 mt-4"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Authenticating..." : "Sign In"}
           </button>
         </form>
+
+        <p className="mt-8 text-center text-xs text-gray-400 font-medium">
+          &copy; 2026 Nimora Admin Panel. All rights reserved.
+        </p>
       </div>
     </div>
   );

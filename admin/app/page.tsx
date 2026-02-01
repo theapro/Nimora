@@ -26,43 +26,66 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500">System overview</p>
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+          Dashboard Overview
+        </h1>
+        <p className="text-sm text-gray-500 font-medium">
+          Real-time statistics for Nimora platform
+        </p>
       </div>
 
-      <div className="grid gap-3 grid-cols-3">
-        <div className="border border-gray-200 rounded p-4">
-          <div className="text-xs text-gray-500 font-medium">Users</div>
-          <div className="text-2xl font-semibold text-gray-900 mt-1">
-            {loading ? "—" : (stats?.users ?? 0)}
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
+          <div className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">
+            Total Users
+          </div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-3xl font-bold text-gray-900 tracking-tighter">
+              {loading ? "—" : (stats?.users ?? 0).toLocaleString()}
+            </div>
+          </div>
+          <div className="mt-4 h-1 w-full bg-gray-50 rounded-full overflow-hidden">
+            <div className="h-full bg-gray-900 w-[60%]" />
           </div>
         </div>
 
-        <div className="border border-gray-200 rounded p-4">
-          <div className="text-xs text-gray-500 font-medium">Communities</div>
-          <div className="text-2xl font-semibold text-gray-900 mt-1">
-            {loading ? "—" : (stats?.communities ?? 0)}
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
+          <div className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">
+            Communities
+          </div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-3xl font-bold text-gray-900 tracking-tighter">
+              {loading ? "—" : (stats?.communities ?? 0).toLocaleString()}
+            </div>
+          </div>
+          <div className="mt-4 h-1 w-full bg-gray-50 rounded-full overflow-hidden">
+            <div className="h-full bg-gray-400 w-[40%]" />
           </div>
         </div>
 
-        <div className="border border-gray-200 rounded p-4">
-          <div className="text-xs text-gray-500 font-medium">Posts</div>
-          <div className="text-2xl font-semibold text-gray-900 mt-1">
-            {loading ? "—" : (stats?.posts ?? 0)}
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
+          <div className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">
+            Total Posts
+          </div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-3xl font-bold text-gray-900 tracking-tighter">
+              {loading ? "—" : (stats?.posts ?? 0).toLocaleString()}
+            </div>
+          </div>
+          <div className="mt-4 h-1 w-full bg-gray-50 rounded-full overflow-hidden">
+            <div className="h-full bg-gray-200 w-[80%]" />
           </div>
         </div>
       </div>
 
-      <div className="flex gap-2 pt-2">
+      <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
         <Link href="/users">
-          <Button variant="outline" size="sm">
-            Users
-          </Button>
+          <Button variant="outline">Manage Users</Button>
         </Link>
         <Link href="/communities">
-          <Button size="sm">Communities</Button>
+          <Button>Explore Communities</Button>
         </Link>
       </div>
     </div>

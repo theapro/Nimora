@@ -17,7 +17,17 @@ const app = new App([
 ]);
 const PORT = process.env.PORT || 3001;
 
+// Basic health check
+app.app.get("/", (req, res) => {
+  res.send("✅ Nimora Backend running successfully on Vercel!");
+});
+
 app.app.get("/api/test", (req, res) => {
+  res.json({ message: "Backend is working!" });
+});
+
+// Same test route without /api prefix (for platforms that strip it)
+app.app.get("/test", (req, res) => {
   res.json({ message: "Backend is working!" });
 });
 

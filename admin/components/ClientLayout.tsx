@@ -18,10 +18,16 @@ export default function ClientLayout({
 
   return (
     <AdminGuard>
-      <div className="flex min-h-screen bg-white">
+      <div className="flex min-h-screen bg-[#fdfdfd]">
         <Sidebar />
-        <main className="flex-1 ml-64 p-6">
-          <div className="max-w-6xl mx-auto">{children}</div>
+        <main className="flex-1 ml-60">
+          <header className="h-20 flex items-center px-8 border-b border-gray-100 bg-white/50 backdrop-blur-md sticky top-0 z-40">
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+              Admin Panel /{" "}
+              {pathname === "/" ? "Dashboard" : pathname.split("/")[1]}
+            </div>
+          </header>
+          <div className="p-8 max-w-6xl mx-auto">{children}</div>
         </main>
       </div>
     </AdminGuard>
