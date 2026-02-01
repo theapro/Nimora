@@ -19,9 +19,9 @@ class UserController {
   private initializeRoutes() {
     this.router.post("/auth/register", this.register);
     this.router.post("/auth/login", this.login);
-    this.router.get("/auth/verify", verifyToken, this.verifyToken);
     this.router.get("/user/:id", verifyToken, this.getUserProfile);
     this.router.put("/user/:id", verifyToken, this.updateUserProfile);
+    this.router.put("/user/:id/password", verifyToken, this.changePassword);
     this.router.post(
       "/user/:id/upload",
       verifyToken,
@@ -125,7 +125,7 @@ class UserController {
       const token = crypto.randomBytes(32).toString("hex");
 
       // Save token for verification
-      saveToken(token, user.id);
+      saveToken(token, user.id, user.role);
 
       res.status(200).json({
         message: "Login successful",
@@ -134,6 +134,7 @@ class UserController {
           id: user.id,
           username: user.username,
           email: user.email,
+          role: user.role,
         },
       });
     } catch (error) {
@@ -169,6 +170,7 @@ class UserController {
           profession, 
           location, 
           website, 
+          gender,
           created_at,
           (SELECT COUNT(*) FROM followers WHERE following_id = users.id) as followers_count,
           (SELECT COUNT(*) FROM followers WHERE follower_id = users.id) as following_count,
@@ -201,6 +203,7 @@ class UserController {
         profession,
         location,
         website,
+        gender,
       } = req.body;
 
       const updates: string[] = [];
@@ -234,6 +237,10 @@ class UserController {
         updates.push("website = ?");
         values.push(website);
       }
+      if (gender !== undefined) {
+        updates.push("gender = ?");
+        values.push(gender);
+      }
 
       if (updates.length === 0) {
         return res.status(400).json({ error: "No fields to update" });
@@ -251,7 +258,7 @@ class UserController {
       }
 
       const [rows] = await this.db.execute(
-        "SELECT id, username, email, profile_image, bio, profession, location, website, created_at FROM users WHERE id = ?",
+        "SELECT id, username, email, profile_image, bio, profession, location, website, gender, created_at FROM users WHERE id = ?",
         [id],
       );
 
@@ -264,6 +271,52 @@ class UserController {
         return res.status(409).json({ error: "Username already exists" });
       }
       console.error("Update profile error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private changePassword = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.userId;
+
+      if (parseInt(id) !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      if (!currentPassword || !newPassword) {
+        return res
+          .status(400)
+          .json({ error: "Current and new passwords are required" });
+      }
+
+      const [rows] = await this.db.execute(
+        "SELECT password FROM users WHERE id = ?",
+        [id],
+      );
+
+      if ((rows as any).length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const user = (rows as any)[0];
+      const hashedCurrent = this.hashPassword(currentPassword);
+
+      if (hashedCurrent !== user.password) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      const hashedNew = this.hashPassword(newPassword);
+
+      await this.db.execute("UPDATE users SET password = ? WHERE id = ?", [
+        hashedNew,
+        id,
+      ]);
+
+      res.status(200).json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   };
@@ -281,7 +334,7 @@ class UserController {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const imageUrl = `/uploads/${req.file.filename}`;
+      const imageUrl = (req.file as any).location;
 
       await this.db.execute("UPDATE users SET profile_image = ? WHERE id = ?", [
         imageUrl,

@@ -64,7 +64,9 @@ const EditPost = () => {
           if (post.cover_image) {
             setExistingCoverImage(post.cover_image);
             setCoverImagePreview(
-              `http://localhost:3001/uploads/${post.cover_image}`,
+              post.cover_image.startsWith("http")
+                ? post.cover_image
+                : `http://localhost:3001/uploads/${post.cover_image}`,
             );
           }
         } else {
@@ -416,7 +418,11 @@ const EditPost = () => {
                       {community.image && (
                         <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-gray-100">
                           <img
-                            src={`http://localhost:3001/uploads/${community.image}`}
+                            src={
+                              community.image.startsWith("http")
+                                ? community.image
+                                : `http://localhost:3001/uploads/${community.image}`
+                            }
                             alt={community.title}
                             className="w-full h-full object-cover"
                           />

@@ -10,6 +10,7 @@ import {
   Users as UsersIcon,
   Loader2,
   Bookmark,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -50,6 +51,11 @@ const Navbar = () => {
     if (searchQuery.trim()) {
       setShowResults(true);
     }
+  };
+
+  const handleAdminPanel = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.open("http://localhost:3002", "_blank");
   };
 
   const handleLogout = () => {
@@ -122,7 +128,7 @@ const Navbar = () => {
             <form onSubmit={handleSearch} className="flex items-center gap-3">
               <input
                 placeholder="Search"
-                className="px-4 py-2 ring-1 h-9 w-80 ring-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white focus:ring-blue-400 rounded-full outline-none transition-all text-sm"
+                className="px-4 py-2 ring-1 h-9 w-2xl ring-gray-200 bg-gray-50/50 hover:bg-white focus:bg-white focus:ring-blue-400 rounded-full outline-none transition-all text-sm"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -178,7 +184,11 @@ const Navbar = () => {
                                 {post.cover_image && (
                                   <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 relative">
                                     <Image
-                                      src={`http://localhost:3001/uploads/${post.cover_image}`}
+                                      src={
+                                        post.cover_image.startsWith("http")
+                                          ? post.cover_image
+                                          : `http://localhost:3001/uploads/${post.cover_image}`
+                                      }
                                       alt=""
                                       fill
                                       className="object-cover"
@@ -264,7 +274,7 @@ const Navbar = () => {
           </div>
           <div>
             <Link href="/home/routes/post/create">
-              <button className="bg-gray-900 text-white font-semibold h-9 rounded-xl px-8 hover:bg-gray-800 transition-all active:scale-95 shadow-sm">
+              <button className="border border-gray-900 text-gray-900 font-semibold h-9 rounded-xl px-8 hover:border-gray-300 hover:text-gray-300 transition-all active:scale-95">
                 Create post
               </button>
             </Link>
@@ -278,7 +288,13 @@ const Navbar = () => {
                 {user.profile_image ? (
                   <div className="w-6.5 h-6.5 rounded overflow-hidden relative">
                     <Image
-                      src={`http://localhost:3001${user.profile_image}`}
+                      src={
+                        user.profile_image.startsWith("http")
+                          ? user.profile_image
+                          : user.profile_image.startsWith("/uploads/")
+                            ? `http://localhost:3001${user.profile_image}`
+                            : `http://localhost:3001/uploads/${user.profile_image}`
+                      }
                       alt="Profile"
                       fill
                       className="object-cover"
@@ -324,13 +340,24 @@ const Navbar = () => {
                       <span className="text-gray-700">Saved Posts</span>
                     </Link>
                     <Link
-                      href="/settings"
+                      href="/home/routes/settings"
                       onClick={() => setShowProfileModal(false)}
                       className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors"
                     >
                       <Settings className="w-4 h-4 text-gray-600" />
                       <span className="text-gray-700">Settings</span>
                     </Link>
+                    {user.role === "admin" && (
+                      <button
+                        onClick={handleAdminPanel}
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors w-full text-left"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-blue-600" />
+                        <span className="text-blue-600 font-semibold">
+                          Admin Panel
+                        </span>
+                      </button>
+                    )}
                   </div>
                   <div className="border-t border-gray-200 py-1">
                     <button

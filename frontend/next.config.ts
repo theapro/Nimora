@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
         port: "3001",
         pathname: "/uploads/**",
       },
+      {
+        protocol: "https",
+        hostname: "**",
+      },
     ],
     dangerouslyAllowSVG: true,
     unoptimized: true,

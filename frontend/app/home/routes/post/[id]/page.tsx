@@ -275,9 +275,11 @@ const PostDetail = () => {
               {comment.profile_image ? (
                 <Image
                   src={
-                    comment.profile_image.startsWith("/uploads/")
-                      ? `http://localhost:3001${comment.profile_image}`
-                      : `http://localhost:3001/uploads/${comment.profile_image}`
+                    comment.profile_image.startsWith("http")
+                      ? comment.profile_image
+                      : comment.profile_image.startsWith("/uploads/")
+                        ? `http://localhost:3001${comment.profile_image}`
+                        : `http://localhost:3001/uploads/${comment.profile_image}`
                   }
                   alt={comment.username}
                   width={32}
@@ -490,7 +492,11 @@ const PostDetail = () => {
             {post.cover_image && (
               <div className="mb-6">
                 <Image
-                  src={`http://localhost:3001/uploads/${post.cover_image}`}
+                  src={
+                    post.cover_image.startsWith("http")
+                      ? post.cover_image
+                      : `http://localhost:3001/uploads/${post.cover_image}`
+                  }
                   alt={post.title}
                   width={800}
                   height={400}
@@ -506,9 +512,11 @@ const PostDetail = () => {
                 {post.profile_image ? (
                   <Image
                     src={
-                      post.profile_image.startsWith("/uploads/")
-                        ? `http://localhost:3001${post.profile_image}`
-                        : `http://localhost:3001/uploads/${post.profile_image}`
+                      post.profile_image.startsWith("http")
+                        ? post.profile_image
+                        : post.profile_image.startsWith("/uploads/")
+                          ? `http://localhost:3001${post.profile_image}`
+                          : `http://localhost:3001/uploads/${post.profile_image}`
                     }
                     alt={post.username}
                     width={48}

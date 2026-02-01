@@ -14,7 +14,8 @@ class App {
     this.app.use(cors());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
-    this.app.use("/uploads", express.static("uploads"));
+    // Cloud storage is used for uploads, so local static serving is no longer needed
+    // this.app.use("/uploads", express.static("uploads"));
   }
 
   private initializeControllers(controllers: any[]) {
