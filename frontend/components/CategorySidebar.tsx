@@ -51,7 +51,6 @@ const CategorySidebar: React.FC<CategorySidebarProps> = ({
   return (
     <div className="sticky top-20 w-19 z-40 h-[calc(100vh-120px)] bg-white rounded-2xl border border-[#e4e4e4] py-3 px-2 overflow-y-auto no-scrollbar">
       <div className="flex flex-col gap-2">
-
         {/* All Communities */}
         <button
           onClick={() => onCommunitySelect(null)}
@@ -91,14 +90,10 @@ const CategorySidebar: React.FC<CategorySidebarProps> = ({
                 key={community.id}
                 onClick={() => onCommunitySelect(community.id)}
                 className={`flex items-center justify-center w-full p-2 rounded-xl transition-all
-                  ${
-                    isActive
-                      ? "bg-gray-900 text-white"
-                      : "hover:bg-gray-100"
-                  }`}
+                  ${isActive ? "bg-gray-900 text-white" : "hover:bg-gray-100"}`}
               >
                 <img
-                  src={`http://localhost:3001/uploads/${community.image}`}
+                  src={community.image}
                   alt={community.title}
                   className="w-11 h-11 rounded-xl object-cover border"
                 />

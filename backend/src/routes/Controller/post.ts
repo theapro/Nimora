@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import pool from "../../utils/db";
 import { verifyToken, optionalAuth } from "../../middlewares/auth";
 import { upload } from "../../middlewares/upload";
+import "multer";
+import "multer-s3";
 
 interface AuthRequest extends Request {
   userId?: number;
@@ -19,7 +21,7 @@ class PostController {
     this.router.post(
       "/posts",
       verifyToken,
-      upload.single("coverImage"),
+      upload.single("cover_image"),
       this.createPost,
     );
     this.router.get("/posts", optionalAuth, this.getAllPosts);
@@ -91,7 +93,6 @@ class PostController {
 
   private createPost = async (req: AuthRequest, res: Response) => {
     try {
-      console.log("Create Post Request Body:", req.body);
       const { title, content, tags, community_id } = req.body;
       const userId = req.userId;
 
@@ -99,23 +100,21 @@ class PostController {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      if (!title || !content) {
+      if (!title || !content || !community_id) {
         return res
           .status(400)
-          .json({ error: "Title and content are required" });
-      }
-
-      if (!community_id) {
-        console.log("Validation failed: community_id is missing");
-        return res.status(400).json({ error: "Community ID is required" });
+          .json({ error: "Title, content and community_id are required" });
       }
 
       const parsedTags = this.parseTags(tags);
-      const coverImage = req.file ? req.file.filename : null;
-      const slug = this.generateSlug(title);
 
-      // Start transaction
+      // Multer-S3 faylni yuklagandan so'ng 'location' maydonida URL qaytaradi
+      const file = req.file as any;
+      const coverImage = file ? file.location : null;
+
+      const slug = this.generateSlug(title);
       const connection = await this.db.getConnection();
+
       await connection.beginTransaction();
 
       try {
@@ -126,27 +125,17 @@ class PostController {
 
         const postId = (result as any).insertId;
 
-        // Handle tags
         if (parsedTags.length > 0) {
           for (const tagName of parsedTags) {
-            // Check if tag exists or create it
-            const [tagResult] = await connection.execute(
+            await connection.execute(
               "INSERT IGNORE INTO tags (name) VALUES (?)",
               [tagName],
             );
-
-            let tagId;
-            if ((tagResult as any).insertId) {
-              tagId = (tagResult as any).insertId;
-            } else {
-              const [existingTag] = await connection.execute(
-                "SELECT id FROM tags WHERE name = ?",
-                [tagName],
-              );
-              tagId = (existingTag as any)[0].id;
-            }
-
-            // Link tag to post
+            const [existingTag]: any = await connection.execute(
+              "SELECT id FROM tags WHERE name = ?",
+              [tagName],
+            );
+            const tagId = existingTag[0].id;
             await connection.execute(
               "INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)",
               [postId, tagId],
@@ -170,6 +159,107 @@ class PostController {
       }
     } catch (error) {
       console.error("Create post error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+  private updatePost = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { title, content, tags, community_id } = req.body;
+      const userId = req.userId;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [existing]: any = await this.db.execute(
+        "SELECT user_id FROM posts WHERE id = ?",
+        [id],
+      );
+
+      if (existing.length === 0) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      if (existing[0].user_id !== userId) {
+        return res
+          .status(403)
+          .json({ error: "Not authorized to update this post" });
+      }
+
+      // Yangi rasm bo'lsa yangi URL, bo'lmasa undefined
+      const file = req.file as any;
+      const coverImage = file ? file.location : undefined;
+
+      const connection = await this.db.getConnection();
+      await connection.beginTransaction();
+
+      try {
+        let updateQuery = "UPDATE posts SET ";
+        const updateValues: any[] = [];
+
+        if (title !== undefined) {
+          updateQuery += "title = ?, ";
+          updateValues.push(title);
+        }
+        if (content !== undefined) {
+          updateQuery += "content = ?, ";
+          updateValues.push(content);
+        }
+        if (community_id !== undefined) {
+          updateQuery += "community_id = ?, ";
+          updateValues.push(community_id);
+        }
+        if (coverImage) {
+          updateQuery += "cover_image = ?, ";
+          updateValues.push(coverImage);
+        }
+
+        if (updateValues.length > 0) {
+          updateQuery = updateQuery.slice(0, -2) + " WHERE id = ?";
+          updateValues.push(id);
+          await connection.execute(updateQuery, updateValues);
+        }
+
+        if (tags !== undefined) {
+          const parsedTags = this.parseTags(tags);
+          await connection.execute("DELETE FROM post_tags WHERE post_id = ?", [
+            id,
+          ]);
+
+          if (parsedTags.length > 0) {
+            for (const tagName of parsedTags) {
+              await connection.execute(
+                "INSERT IGNORE INTO tags (name) VALUES (?)",
+                [tagName],
+              );
+              const [tagResult]: any = await connection.execute(
+                "SELECT id FROM tags WHERE name = ?",
+                [tagName],
+              );
+              const tagId = tagResult[0].id;
+              await connection.execute(
+                "INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)",
+                [id, tagId],
+              );
+            }
+          }
+        }
+
+        await connection.commit();
+        res.status(200).json({
+          message: "Post updated successfully",
+          coverImage: coverImage,
+        });
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    } catch (error) {
+      console.error("Update post error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   };
@@ -326,113 +416,6 @@ class PostController {
       res.status(200).json({ post });
     } catch (error) {
       console.error("Get post error:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  };
-
-  private updatePost = async (req: AuthRequest, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { title, content, tags, community_id } = req.body;
-      const userId = req.userId;
-
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      // Check if post exists and belongs to user
-      const [existing] = await this.db.execute(
-        "SELECT user_id FROM posts WHERE id = ?",
-        [id],
-      );
-
-      if ((existing as any).length === 0) {
-        return res.status(404).json({ error: "Post not found" });
-      }
-
-      if ((existing as any)[0].user_id !== userId) {
-        return res
-          .status(403)
-          .json({ error: "Not authorized to update this post" });
-      }
-
-      const coverImage = req.file ? req.file.filename : undefined;
-
-      // Start transaction
-      const connection = await this.db.getConnection();
-      await connection.beginTransaction();
-
-      try {
-        // Build update query dynamically
-        let updateQuery = "UPDATE posts SET ";
-        const updateValues: any[] = [];
-
-        if (title !== undefined) {
-          updateQuery += "title = ?, ";
-          updateValues.push(title);
-        }
-        if (content !== undefined) {
-          updateQuery += "content = ?, ";
-          updateValues.push(content);
-        }
-        if (community_id !== undefined) {
-          updateQuery += "community_id = ?, ";
-          updateValues.push(community_id);
-        }
-        if (coverImage) {
-          updateQuery += "cover_image = ?, ";
-          updateValues.push(coverImage);
-        }
-
-        if (updateValues.length > 0) {
-          // Remove trailing comma and space
-          updateQuery = updateQuery.slice(0, -2);
-          updateQuery += " WHERE id = ?";
-          updateValues.push(id);
-          await connection.execute(updateQuery, updateValues);
-        }
-
-        // Handle tags if provided
-        if (tags !== undefined) {
-          const parsedTags = this.parseTags(tags);
-
-          // Delete old tags mapping
-          await connection.execute("DELETE FROM post_tags WHERE post_id = ?", [
-            id,
-          ]);
-
-          // Insert new tags
-          if (parsedTags.length > 0) {
-            for (const tagName of parsedTags) {
-              await connection.execute(
-                "INSERT IGNORE INTO tags (name) VALUES (?)",
-                [tagName],
-              );
-
-              const [tagResult] = await connection.execute(
-                "SELECT id FROM tags WHERE name = ?",
-                [tagName],
-              );
-              const tagId = (tagResult as any)[0].id;
-
-              await connection.execute(
-                "INSERT INTO post_tags (post_id, tag_id) VALUES (?, ?)",
-                [id, tagId],
-              );
-            }
-          }
-        }
-
-        await connection.commit();
-        res.status(200).json({ message: "Post updated successfully" });
-      } catch (error) {
-        await connection.rollback();
-        throw error;
-      } finally {
-        connection.release();
-      }
-    } catch (error) {
-      console.error("Update post error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   };

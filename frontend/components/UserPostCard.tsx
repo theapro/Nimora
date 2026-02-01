@@ -124,9 +124,11 @@ const UserPostCard: React.FC<UserPostCardProps> = ({
             {author?.profileImage ? (
               <Image
                 src={
-                  author.profileImage.startsWith("/uploads/")
-                    ? `http://localhost:3001${author.profileImage}`
-                    : `http://localhost:3001/uploads/${author.profileImage}`
+                  author.profileImage.startsWith("http")
+                    ? author.profileImage
+                    : author.profileImage.startsWith("/uploads/")
+                      ? `http://localhost:3001${author.profileImage}`
+                      : `http://localhost:3001/uploads/${author.profileImage}`
                 }
                 alt={author.username || "User"}
                 width={36}

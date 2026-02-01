@@ -242,7 +242,7 @@ const CreatePost = () => {
     formData.append("community_id", communityId.toString());
     formData.append("tags", JSON.stringify(tags));
     if (coverImage) {
-      formData.append("coverImage", coverImage);
+      formData.append("cover_image", coverImage);
     }
 
     // Debug: Log FormData contents
@@ -266,7 +266,7 @@ const CreatePost = () => {
         throw new Error(error.error || "Failed to create post");
       }
 
-      router.push("/home/routes/post");
+      router.push("/home");
     } catch (error) {
       console.error("Error creating post:", error);
       console.log(
@@ -428,7 +428,11 @@ const CreatePost = () => {
                       {community.image && (
                         <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-gray-100">
                           <img
-                            src={`http://localhost:3001/uploads/${community.image}`}
+                            src={
+                              community.image.startsWith("http")
+                                ? community.image
+                                : `http://localhost:3001/uploads/${community.image}`
+                            }
                             alt={community.title}
                             className="w-full h-full object-cover"
                           />

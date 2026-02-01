@@ -125,7 +125,7 @@ class UserController {
       const token = crypto.randomBytes(32).toString("hex");
 
       // Save token for verification
-      saveToken(token, user.id);
+      saveToken(token, user.id, user.role);
 
       res.status(200).json({
         message: "Login successful",
@@ -134,6 +134,7 @@ class UserController {
           id: user.id,
           username: user.username,
           email: user.email,
+          role: user.role,
         },
       });
     } catch (error) {
@@ -281,7 +282,7 @@ class UserController {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const imageUrl = `/uploads/${req.file.filename}`;
+      const imageUrl = (req.file as any).location;
 
       await this.db.execute("UPDATE users SET profile_image = ? WHERE id = ?", [
         imageUrl,

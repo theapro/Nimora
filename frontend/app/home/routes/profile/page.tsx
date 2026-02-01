@@ -545,9 +545,13 @@ const Profile = () => {
                       {profileData?.profile_image ? (
                         <Image
                           src={
-                            profileData.profile_image.startsWith("/uploads/")
-                              ? `http://localhost:3001${profileData.profile_image}`
-                              : `http://localhost:3001/uploads/${profileData.profile_image}`
+                            profileData.profile_image.startsWith("http")
+                              ? profileData.profile_image
+                              : profileData.profile_image.startsWith(
+                                    "/uploads/",
+                                  )
+                                ? `http://localhost:3001${profileData.profile_image}`
+                                : `http://localhost:3001/uploads/${profileData.profile_image}`
                           }
                           alt="Profile"
                           fill

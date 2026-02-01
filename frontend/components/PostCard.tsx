@@ -250,7 +250,11 @@ const PostCard: React.FC<PostCardProps> = ({
         {coverImage && (
           <div className="w-full h-40 sm:h-56 relative overflow-hidden">
             <Image
-              src={`http://localhost:3001/uploads/${coverImage}`}
+              src={
+                coverImage.startsWith("http")
+                  ? coverImage
+                  : `http://localhost:3001/uploads/${coverImage}`
+              }
               alt={title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -266,9 +270,11 @@ const PostCard: React.FC<PostCardProps> = ({
                 {author?.profileImage ? (
                   <Image
                     src={
-                      author.profileImage.startsWith("/uploads/")
-                        ? `http://localhost:3001${author.profileImage}`
-                        : `http://localhost:3001/uploads/${author.profileImage}`
+                      author.profileImage.startsWith("http")
+                        ? author.profileImage
+                        : author.profileImage.startsWith("/uploads/")
+                          ? `http://localhost:3001${author.profileImage}`
+                          : `http://localhost:3001/uploads/${author.profileImage}`
                     }
                     alt={author.username || "User"}
                     width={36}

@@ -56,15 +56,6 @@ const Sidebar = () => {
           </span>
         </Link>
         <Link
-          href="/home/routes/post"
-          className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
-        >
-          <Mail size={20} className="text-gray-600 group-hover:text-gray-900" />
-          <span className="text-gray-700 font-medium group-hover:text-gray-900">
-            Your Posts
-          </span>
-        </Link>
-        <Link
           href="/settings"
           className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
         >

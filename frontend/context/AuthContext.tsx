@@ -7,6 +7,7 @@ interface User {
   username: string;
   email: string;
   profile_image?: string;
+  role?: string;
 }
 
 interface AuthContextType {
@@ -47,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               headers: {
                 Authorization: `Bearer ${storedToken}`,
               },
-            }
+            },
           );
 
           if (res.status === 401) {
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               username: data.user.username,
               email: data.user.email,
               profile_image: data.user.profile_image,
+              role: data.user.role,
             };
             setUser(updatedUser);
             localStorage.setItem("user", JSON.stringify(updatedUser));
