@@ -82,13 +82,9 @@ export default function CommunitiesPage() {
       setUploading(true);
       const formData = new FormData();
       formData.append("communityImage", file);
-      const response = await api.post(
-        "/communities/upload-image",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
-      );
+      const response = await api.post("/communities/upload-image", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       setNewCommunity((p) => ({
         ...p,
         image: response.data.imageUrl,
