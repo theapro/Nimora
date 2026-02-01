@@ -17,9 +17,7 @@ const TopDiscussions = () => {
     const fetchTopDiscussions = async () => {
       try {
         setLoading(true);
-        const response = await apiCall(
-          "/api/posts/top/discussions?limit=8",
-        );
+        const response = await apiCall("/api/posts/top/discussions?limit=8");
 
         if (!response.ok) {
           throw new Error("Failed to fetch top discussions");

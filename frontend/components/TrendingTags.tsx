@@ -17,9 +17,7 @@ const TrendingTags = () => {
     const fetchTrendingTags = async () => {
       try {
         setLoading(true);
-        const response = await apiCall(
-          "/api/posts/trending/tags?limit=8",
-        );
+        const response = await apiCall("/api/posts/trending/tags?limit=8");
 
         if (!response.ok) {
           throw new Error("Failed to fetch trending tags");

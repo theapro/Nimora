@@ -1,8 +1,9 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+export const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export const apiCall = async (
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<Response> => {
   const token = localStorage.getItem("token");
 

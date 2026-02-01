@@ -123,9 +123,7 @@ const PostDetail = () => {
 
   const fetchComments = async () => {
     try {
-      const response = await apiCall(
-        `/api/posts/${postId}/comments`,
-      );
+      const response = await apiCall(`/api/posts/${postId}/comments`);
       if (response.ok) {
         const data = await response.json();
         setComments(data.comments);
@@ -137,9 +135,7 @@ const PostDetail = () => {
 
   const fetchLikes = async () => {
     try {
-      const response = await apiCall(
-        `/api/posts/${postId}/likes`,
-      );
+      const response = await apiCall(`/api/posts/${postId}/likes`);
       if (response.ok) {
         const data: { likes: Like[] } = await response.json();
         setLikes(data.likes.length);

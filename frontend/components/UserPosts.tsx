@@ -33,9 +33,7 @@ const UserPosts = () => {
     }
 
     try {
-      const response = await apiCall(
-        `/api/users/${user.id}/posts`,
-      );
+      const response = await apiCall(`/api/users/${user.id}/posts`);
       if (response.ok) {
         const data = await response.json();
         setPosts(data.posts);

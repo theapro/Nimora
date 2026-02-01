@@ -138,17 +138,14 @@ const SettingsPageInner = () => {
       setError("");
       setSuccess("");
 
-      const res = await apiCall(
-        `/api/user/${user.id}/password`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            currentPassword: passwordData.currentPassword,
-            newPassword: passwordData.newPassword,
-          }),
-        },
-      );
+      const res = await apiCall(`/api/user/${user.id}/password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
 
       if (res.ok) {
         setSuccess("Password updated successfully!");
@@ -179,13 +176,10 @@ const SettingsPageInner = () => {
       const formData = new FormData();
       formData.append("profileImage", file);
 
-      const res = await apiCall(
-        `/api/user/${user.id}/upload`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
+      const res = await apiCall(`/api/user/${user.id}/upload`, {
+        method: "POST",
+        body: formData,
+      });
 
       if (res.ok) {
         const data = await res.json();

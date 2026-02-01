@@ -57,9 +57,7 @@ const Posts: React.FC<PostsProps> = ({ communityId }) => {
           params.append("community", communityId.toString());
         }
 
-        const response = await apiCall(
-          `/api/posts?${params.toString()}`,
-        );
+        const response = await apiCall(`/api/posts?${params.toString()}`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch posts");
