@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { apiCall } from "@/utils/api";
 
 const Login = () => {
   const [email, setEmail] = React.useState("");
@@ -17,7 +18,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await apiCall("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
