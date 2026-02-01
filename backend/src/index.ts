@@ -21,15 +21,22 @@ app.app.get("/api/test", (req, res) => {
   res.json({ message: "Backend is working!" });
 });
 
-const server = app.app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`Test route: http://localhost:${PORT}/api/test`);
-});
+let server: any;
+if (process.env.NODE_ENV !== "production") {
+  server = app.app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Test route: http://localhost:${PORT}/api/test`);
+  });
+}
+
+export default app.app;
 
 process.on("SIGTERM", () => {
-  server.close(() => {
-    console.log("Server closed");
-  });
+  if (server) {
+    server.close(() => {
+      console.log("Server closed");
+    });
+  }
 });
 
 process.on("uncaughtException", (error) => {
