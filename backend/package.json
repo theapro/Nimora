@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon",
     "start": "node",
+    "build": "tsc",
     "bcrypt:hash": "node scripts/bcrypt-hash.js"
   },
   "keywords": [],

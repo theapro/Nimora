@@ -56,12 +56,14 @@ export default function Dashboard() {
       </div>
 
       <div className="flex gap-2 pt-2">
-        <Button asChild variant="outline" size="sm">
-          <Link href="/users">Users</Link>
-        </Button>
-        <Button asChild size="sm">
-          <Link href="/communities">Communities</Link>
-        </Button>
+        <Link href="/users">
+          <Button variant="outline" size="sm">
+            Users
+          </Button>
+        </Link>
+        <Link href="/communities">
+          <Button size="sm">Communities</Button>
+        </Link>
       </div>
     </div>
   );
