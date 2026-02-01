@@ -18,7 +18,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { apiCall } from "@/utils/api";
+import { apiCall, API_URL } from "@/utils/api";
 
 const LANGUAGES = [
   "Uzbek",
@@ -109,7 +109,7 @@ const PostDetail = () => {
 
   const fetchPost = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/posts/${postId}`);
+      const response = await apiCall(`/api/posts/${postId}`);
       if (response.ok) {
         const data = await response.json();
         setPost(data.post);
@@ -123,8 +123,8 @@ const PostDetail = () => {
 
   const fetchComments = async () => {
     try {
-      const response = await fetch(
-        `http://localhost:3001/api/posts/${postId}/comments`,
+      const response = await apiCall(
+        `/api/posts/${postId}/comments`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -137,8 +137,8 @@ const PostDetail = () => {
 
   const fetchLikes = async () => {
     try {
-      const response = await fetch(
-        `http://localhost:3001/api/posts/${postId}/likes`,
+      const response = await apiCall(
+        `/api/posts/${postId}/likes`,
       );
       if (response.ok) {
         const data: { likes: Like[] } = await response.json();
@@ -278,8 +278,8 @@ const PostDetail = () => {
                     comment.profile_image.startsWith("http")
                       ? comment.profile_image
                       : comment.profile_image.startsWith("/uploads/")
-                        ? `http://localhost:3001${comment.profile_image}`
-                        : `http://localhost:3001/uploads/${comment.profile_image}`
+                        ? `${API_URL}${comment.profile_image}`
+                        : `${API_URL}/uploads/${comment.profile_image}`
                   }
                   alt={comment.username}
                   width={32}
@@ -495,7 +495,7 @@ const PostDetail = () => {
                   src={
                     post.cover_image.startsWith("http")
                       ? post.cover_image
-                      : `http://localhost:3001/uploads/${post.cover_image}`
+                      : `${API_URL}/uploads/${post.cover_image}`
                   }
                   alt={post.title}
                   width={800}
@@ -515,8 +515,8 @@ const PostDetail = () => {
                       post.profile_image.startsWith("http")
                         ? post.profile_image
                         : post.profile_image.startsWith("/uploads/")
-                          ? `http://localhost:3001${post.profile_image}`
-                          : `http://localhost:3001/uploads/${post.profile_image}`
+                          ? `${API_URL}${post.profile_image}`
+                          : `${API_URL}/uploads/${post.profile_image}`
                     }
                     alt={post.username}
                     width={48}

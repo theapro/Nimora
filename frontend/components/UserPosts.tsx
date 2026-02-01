@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import UserPostCard from "./UserPostCard";
 import { useAuth } from "@/context/AuthContext";
 import { PostCardSkeleton } from "./SkeletonLoader";
+import { apiCall } from "@/utils/api";
 
 interface Post {
   id: number;
@@ -32,8 +33,8 @@ const UserPosts = () => {
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:3001/api/users/${user.id}/posts`,
+      const response = await apiCall(
+        `/api/users/${user.id}/posts`,
       );
       if (response.ok) {
         const data = await response.json();

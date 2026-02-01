@@ -16,7 +16,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { apiCall } from "@/utils/api";
+import { apiCall, API_URL } from "@/utils/api";
 
 interface SearchPost {
   id: number;
@@ -72,7 +72,7 @@ const Navbar = () => {
         setShowResults(true);
         try {
           const response = await apiCall(
-            `http://localhost:3001/api/search?q=${encodeURIComponent(searchQuery)}`,
+            `/api/search?q=${encodeURIComponent(searchQuery)}`,
           );
           if (response.ok) {
             const data = await response.json();
@@ -187,7 +187,7 @@ const Navbar = () => {
                                       src={
                                         post.cover_image.startsWith("http")
                                           ? post.cover_image
-                                          : `http://localhost:3001/uploads/${post.cover_image}`
+                                          : `${API_URL}/uploads/${post.cover_image}`
                                       }
                                       alt=""
                                       fill
@@ -239,7 +239,7 @@ const Navbar = () => {
                                       src={
                                         u.profile_image.startsWith("http")
                                           ? u.profile_image
-                                          : `http://localhost:3001/uploads/${u.profile_image}`
+                                          : `${API_URL}/uploads/${u.profile_image}`
                                       }
                                       alt=""
                                       fill
@@ -292,8 +292,8 @@ const Navbar = () => {
                         user.profile_image.startsWith("http")
                           ? user.profile_image
                           : user.profile_image.startsWith("/uploads/")
-                            ? `http://localhost:3001${user.profile_image}`
-                            : `http://localhost:3001/uploads/${user.profile_image}`
+                            ? `${API_URL}${user.profile_image}`
+                            : `${API_URL}/uploads/${user.profile_image}`
                       }
                       alt="Profile"
                       fill

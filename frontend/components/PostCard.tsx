@@ -13,7 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { apiCall } from "@/utils/api";
+import { apiCall, API_URL } from "@/utils/api";
 
 interface PostCardProps {
   id: number;
@@ -253,7 +253,7 @@ const PostCard: React.FC<PostCardProps> = ({
               src={
                 coverImage.startsWith("http")
                   ? coverImage
-                  : `http://localhost:3001/uploads/${coverImage}`
+                  : `${API_URL}/uploads/${coverImage}`
               }
               alt={title}
               fill
@@ -273,8 +273,8 @@ const PostCard: React.FC<PostCardProps> = ({
                       author.profileImage.startsWith("http")
                         ? author.profileImage
                         : author.profileImage.startsWith("/uploads/")
-                          ? `http://localhost:3001${author.profileImage}`
-                          : `http://localhost:3001/uploads/${author.profileImage}`
+                          ? `${API_URL}${author.profileImage}`
+                          : `${API_URL}/uploads/${author.profileImage}`
                     }
                     alt={author.username || "User"}
                     width={36}

@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import PostCard from "./PostCard";
 import { useAuth } from "@/context/AuthContext";
+import { apiCall, API_URL } from "@/utils/api";
 
 interface Post {
   id: number;
@@ -56,9 +57,8 @@ const Posts: React.FC<PostsProps> = ({ communityId }) => {
           params.append("community", communityId.toString());
         }
 
-        const response = await fetch(
-          `http://localhost:3001/api/posts?${params.toString()}`,
-          { headers },
+        const response = await apiCall(
+          `/api/posts?${params.toString()}`,
         );
 
         if (!response.ok) {

@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import { apiCall } from "@/utils/api";
+import { apiCall, API_URL } from "@/utils/api";
 
 type TabType =
   | "account"
@@ -104,7 +104,7 @@ const SettingsPageInner = () => {
       setSuccess("");
 
       if (!user) return;
-      const res = await apiCall(`http://localhost:3001/api/user/${user.id}`, {
+      const res = await apiCall(`/api/user/${user.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profileData),
@@ -139,7 +139,7 @@ const SettingsPageInner = () => {
       setSuccess("");
 
       const res = await apiCall(
-        `http://localhost:3001/api/user/${user.id}/password`,
+        `/api/user/${user.id}/password`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -180,7 +180,7 @@ const SettingsPageInner = () => {
       formData.append("profileImage", file);
 
       const res = await apiCall(
-        `http://localhost:3001/api/user/${user.id}/upload`,
+        `/api/user/${user.id}/upload`,
         {
           method: "POST",
           body: formData,
@@ -320,7 +320,7 @@ const SettingsPageInner = () => {
                                       if (!user)
                                         throw new Error("User not loaded");
                                       const res = await apiCall(
-                                        `http://localhost:3001/api/user/${user.id}`,
+                                        `/api/user/${user.id}`,
                                         {
                                           method: "PUT",
                                           headers: {
@@ -395,7 +395,7 @@ const SettingsPageInner = () => {
                             src={
                               profileData.profile_image.startsWith("http")
                                 ? profileData.profile_image
-                                : `http://localhost:3001/uploads/${profileData.profile_image}`
+                                : `${API_URL}/uploads/${profileData.profile_image}`
                             }
                             alt="Profile"
                             fill

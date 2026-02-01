@@ -20,7 +20,7 @@ import {
   Sparkles,
   Loader2,
 } from "lucide-react";
-import { apiCall } from "@/utils/api";
+import { apiCall, API_URL } from "@/utils/api";
 
 interface Community {
   id: number;
@@ -51,7 +51,7 @@ const CreatePost = () => {
   useEffect(() => {
     const fetchCommunities = async () => {
       try {
-        const response = await fetch("http://localhost:3001/api/communities");
+        const response = await apiCall("/api/communities");
         if (response.ok) {
           const data = await response.json();
           setCommunities(data.communities);
@@ -138,7 +138,7 @@ const CreatePost = () => {
     if (!aiTopic.trim()) return;
     setAiLoading(true);
     try {
-      const response = await apiCall("http://localhost:3001/api/ai/generate", {
+      const response = await apiCall("/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic: aiTopic }),
@@ -164,7 +164,7 @@ const CreatePost = () => {
     if (!content.trim()) return;
     setAiLoading(true);
     try {
-      const response = await apiCall("http://localhost:3001/api/ai/tags", {
+      const response = await apiCall("/api/ai/tags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -186,7 +186,7 @@ const CreatePost = () => {
     if (!content.trim()) return;
     setAiLoading(true);
     try {
-      const response = await apiCall("http://localhost:3001/api/ai/summarize", {
+      const response = await apiCall("/api/ai/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -207,7 +207,7 @@ const CreatePost = () => {
     if (!content.trim()) return;
     setAiLoading(true);
     try {
-      const response = await apiCall("http://localhost:3001/api/ai/expand", {
+      const response = await apiCall("/api/ai/expand", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -252,12 +252,8 @@ const CreatePost = () => {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/api/posts", {
+      const response = await apiCall("/api/posts", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
       });
 
@@ -431,7 +427,7 @@ const CreatePost = () => {
                             src={
                               community.image.startsWith("http")
                                 ? community.image
-                                : `http://localhost:3001/uploads/${community.image}`
+                                : `${API_URL}/uploads/${community.image}`
                             }
                             alt={community.title}
                             className="w-full h-full object-cover"

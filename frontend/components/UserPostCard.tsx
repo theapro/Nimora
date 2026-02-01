@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart, MessageCircle, Edit, Trash2, MoreVertical } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { apiCall } from "@/utils/api";
+import { apiCall, API_URL } from "@/utils/api";
 
 interface UserPostCardProps {
   id: number;
@@ -59,7 +59,7 @@ const UserPostCard: React.FC<UserPostCardProps> = ({
     setIsDeleting(true);
 
     try {
-      const response = await apiCall(`http://localhost:3001/api/posts/${id}`, {
+      const response = await apiCall(`/api/posts/${id}`, {
         method: "DELETE",
       });
 
@@ -127,8 +127,8 @@ const UserPostCard: React.FC<UserPostCardProps> = ({
                   author.profileImage.startsWith("http")
                     ? author.profileImage
                     : author.profileImage.startsWith("/uploads/")
-                      ? `http://localhost:3001${author.profileImage}`
-                      : `http://localhost:3001/uploads/${author.profileImage}`
+                      ? `${API_URL}${author.profileImage}`
+                      : `${API_URL}/uploads/${author.profileImage}`
                 }
                 alt={author.username || "User"}
                 width={36}

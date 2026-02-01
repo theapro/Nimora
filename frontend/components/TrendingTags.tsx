@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
+import { apiCall } from "@/utils/api";
 
 interface Tag {
   name: string;
@@ -16,8 +17,8 @@ const TrendingTags = () => {
     const fetchTrendingTags = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          "http://localhost:3001/api/posts/trending/tags?limit=8",
+        const response = await apiCall(
+          "/api/posts/trending/tags?limit=8",
         );
 
         if (!response.ok) {

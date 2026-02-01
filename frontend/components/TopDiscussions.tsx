@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { apiCall } from "@/utils/api";
 
 interface TopPost {
   id: number;
@@ -16,8 +17,8 @@ const TopDiscussions = () => {
     const fetchTopDiscussions = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          "http://localhost:3001/api/posts/top/discussions?limit=8",
+        const response = await apiCall(
+          "/api/posts/top/discussions?limit=8",
         );
 
         if (!response.ok) {

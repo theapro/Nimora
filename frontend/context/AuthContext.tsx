@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
+import { API_URL, apiCall } from "@/utils/api";
 
 interface User {
   id: number;
@@ -42,14 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Refresh user data to get latest profile image
         try {
-          const res = await fetch(
-            `http://localhost:3001/api/user/${userData.id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${storedToken}`,
-              },
-            },
-          );
+          const res = await apiCall(`/api/user/${userData.id}`);
 
           if (res.status === 401) {
             // Token expired or invalid
@@ -93,11 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const res = await fetch("http://localhost:3001/api/auth/verify", {
+      const res = await apiCall("/api/auth/verify", {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-        },
       });
 
       if (res.status === 401) {
@@ -130,11 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const userData = JSON.parse(storedUser);
-      const res = await fetch(`http://localhost:3001/api/user/${userData.id}`, {
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-        },
-      });
+      const res = await apiCall(`/api/user/${userData.id}`);
 
       if (res.status === 401) {
         // Token expired or invalid
