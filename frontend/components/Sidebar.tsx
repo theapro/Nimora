@@ -56,7 +56,7 @@ const Sidebar = () => {
           </span>
         </Link>
         <Link
-          href="/settings"
+          href="/home/routes/settings"
           className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
         >
           <Settings

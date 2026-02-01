@@ -340,7 +340,7 @@ const Navbar = () => {
                       <span className="text-gray-700">Saved Posts</span>
                     </Link>
                     <Link
-                      href="/settings"
+                      href="/home/routes/settings"
                       onClick={() => setShowProfileModal(false)}
                       className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors"
                     >
