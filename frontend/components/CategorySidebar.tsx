@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { API_URL } from "@/utils/api";
 
 interface Community {
   id: number;
@@ -25,7 +26,7 @@ const CategorySidebar: React.FC<CategorySidebarProps> = ({
   useEffect(() => {
     const fetchCommunities = async () => {
       try {
-        const response = await fetch("/api/communities");
+        const response = await fetch(`${API_URL}/api/communities`);
         if (response.ok) {
           const data = await response.json();
           setCommunities(data.communities || []);

@@ -1,6 +1,10 @@
 import { Router, Request, Response } from "express";
 import pool from "../../utils/db";
-import { verifyAdminToken, isAdmin, saveToken } from "../../middlewares/auth";
+import {
+  verifyAdminToken,
+  isAdmin,
+  signAccessToken,
+} from "../../middlewares/auth";
 import { upload } from "../../middlewares/upload";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
@@ -459,28 +463,58 @@ class AdminController {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      const isPasswordOk = await bcrypt.compare(password, admin.password);
+      // bcrypt.compare throws if stored hash is not bcrypt (legacy/plain/sha256)
+      let isPasswordOk = false;
+      try {
+        isPasswordOk = await bcrypt.compare(password, String(admin.password));
+      } catch {
+        isPasswordOk = false;
+      }
+
       if (!isPasswordOk) {
-        return res.status(401).json({ error: "Invalid email or password" });
+        const sha256 = crypto
+          .createHash("sha256")
+          .update(password)
+          .digest("hex");
+        const stored = String(admin.password);
+        const legacyMatch = stored === password || stored === sha256;
+
+        if (!legacyMatch) {
+          return res.status(401).json({ error: "Invalid email or password" });
+        }
+
+        // Upgrade legacy password to bcrypt so future logins are stable
+        const newHash = await bcrypt.hash(password, 10);
+        await this.db.execute(
+          "UPDATE admin_users SET password = ? WHERE id = ?",
+          [newHash, admin.id],
+        );
       }
 
       if (!admin.is_active) {
         return res.status(403).json({ error: "Admin account is disabled." });
       }
 
-      const token = crypto.randomBytes(32).toString("hex");
+      const token = signAccessToken({
+        userId: admin.id,
+        role: "admin",
+        expiresIn: process.env.ADMIN_JWT_EXPIRES_IN || "7d",
+      });
 
-      await this.db.execute(
-        "INSERT INTO admin_sessions (admin_id, token, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY))",
-        [admin.id, token],
-      );
+      // Best-effort session record (optional). Don't block login if table isn't present.
+      try {
+        await this.db.execute(
+          "INSERT INTO admin_sessions (admin_id, token, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY))",
+          [admin.id, token],
+        );
+      } catch (error) {
+        console.warn("admin_sessions insert skipped:", error);
+      }
 
       await this.db.execute(
         "UPDATE admin_users SET last_login_at = NOW() WHERE id = ?",
         [admin.id],
       );
-
-      saveToken(token, admin.id, "admin");
 
       res.status(200).json({
         message: "Admin login successful",

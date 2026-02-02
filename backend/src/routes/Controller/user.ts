@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import pool from "../../utils/db";
 import crypto from "crypto";
-import { verifyToken, saveToken } from "../../middlewares/auth";
+import { verifyToken, signAccessToken } from "../../middlewares/auth";
 import { upload } from "../../middlewares/upload";
 
 interface AuthRequest extends Request {
@@ -123,10 +123,11 @@ class UserController {
       }
 
       const user = (rows as any)[0];
-      const token = crypto.randomBytes(32).toString("hex");
-
-      // Save token for verification
-      saveToken(token, user.id, user.role);
+      const role = user.role || "user";
+      const token = signAccessToken({
+        userId: user.id,
+        role,
+      });
 
       res.status(200).json({
         message: "Login successful",
@@ -135,7 +136,7 @@ class UserController {
           id: user.id,
           username: user.username,
           email: user.email,
-          role: user.role,
+          role,
         },
       });
     } catch (error) {

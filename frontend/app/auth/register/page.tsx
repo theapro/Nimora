@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { API_URL } from "@/utils/api";
 
 const Register = () => {
   const [form, setForm] = useState({
@@ -32,7 +33,7 @@ const Register = () => {
     }
 
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

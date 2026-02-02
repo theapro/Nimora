@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { API_URL } from "@/utils/api";
 import Navbar from "@/components/Navbar";
 import {
   Bold,
@@ -88,7 +89,7 @@ const EditPost = () => {
 
     const fetchCommunities = async () => {
       try {
-        const response = await fetch("/api/communities");
+        const response = await fetch(`${API_URL}/api/communities`);
         if (response.ok) {
           const data = await response.json();
           setCommunities(data.communities);

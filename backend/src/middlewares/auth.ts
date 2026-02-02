@@ -1,17 +1,68 @@
 import { Request, Response, NextFunction } from "express";
-import mysql from "mysql2/promise";
 import pool from "../utils/db";
+import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
 
 interface AuthRequest extends Request {
   userId?: number;
   role?: string;
 }
 
-// In-memory token store (for production, use Redis or database)
-const tokenStore = new Map<string, { userId: number; role: string }>();
+type AccessTokenPayload = JwtPayload & {
+  userId: number;
+  role: string;
+};
 
-export const saveToken = (token: string, userId: number, role: string) => {
-  tokenStore.set(token, { userId, role });
+const getJwtSecret = () => {
+  const secret =
+    process.env.JWT_SECRET ||
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    "nimora-dev-secret";
+
+  if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production") {
+    console.warn(
+      "[auth] JWT_SECRET is not set. Using a fallback secret (NOT recommended for production).",
+    );
+  }
+
+  return secret;
+};
+
+export const signAccessToken = (payload: {
+  userId: number;
+  role: string;
+  expiresIn?: string;
+}) => {
+  const { expiresIn, ...rest } = payload;
+  const secret = getJwtSecret();
+
+  const ttl = (expiresIn ||
+    process.env.JWT_EXPIRES_IN ||
+    "7d") as SignOptions["expiresIn"];
+
+  return jwt.sign(rest, secret, {
+    expiresIn: ttl,
+  });
+};
+
+const getBearerToken = (req: Request): string | null => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
+  return authHeader.substring(7);
+};
+
+const verifyJwt = (token: string): AccessTokenPayload => {
+  const secret = getJwtSecret();
+  const decoded = jwt.verify(token, secret) as JwtPayload;
+
+  const userId = (decoded as any).userId;
+  const role = (decoded as any).role;
+
+  if (typeof userId !== "number" || typeof role !== "string") {
+    throw new Error("Invalid token payload");
+  }
+
+  return decoded as AccessTokenPayload;
 };
 
 export const verifyToken = async (
@@ -20,28 +71,33 @@ export const verifyToken = async (
   next: NextFunction,
 ) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const token = getBearerToken(req);
+    if (!token) {
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const token = authHeader.substring(7);
+    const payload = verifyJwt(token);
 
-    // Check if token exists in store
-    const session = tokenStore.get(token);
-
-    if (!session) {
-      return res.status(401).json({ error: "Invalid or expired token" });
+    // Optional hard checks from DB (keeps banned/disabled users out)
+    if (payload.role !== "admin") {
+      const [rows] = await pool.execute(
+        "SELECT is_banned, role FROM users WHERE id = ? LIMIT 1",
+        [payload.userId],
+      );
+      const user = (rows as any)[0];
+      if (!user) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+      if (user.is_banned) {
+        return res.status(403).json({ error: "User is banned" });
+      }
     }
 
-    // Attach userId and role to request
-    req.userId = session.userId;
-    req.role = session.role;
+    req.userId = payload.userId;
+    req.role = payload.role;
     next();
   } catch (error) {
-    console.error("Token verification error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(401).json({ error: "Invalid or expired token" });
   }
 };
 
@@ -51,48 +107,30 @@ export const verifyAdminToken = async (
   next: NextFunction,
 ) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const token = getBearerToken(req);
+    if (!token) {
       return res.status(401).json({ error: "No token provided" });
     }
-
-    const token = authHeader.substring(7);
-
-    // First check in-memory for speed
-    const inMemory = tokenStore.get(token);
-    if (inMemory?.role === "admin") {
-      req.userId = inMemory.userId;
-      req.role = inMemory.role;
-      return next();
+    const payload = verifyJwt(token);
+    if (payload.role !== "admin") {
+      return res.status(403).json({ error: "Access denied. Admin only." });
     }
 
-    // Fallback to DB for persistence
+    // Confirm admin still active
     const [rows] = await pool.execute(
-      `SELECT s.admin_id
-       FROM admin_sessions s
-       JOIN admin_users a ON a.id = s.admin_id
-       WHERE s.token = ?
-         AND s.revoked_at IS NULL
-         AND s.expires_at > NOW()
-         AND a.is_active = TRUE
-       LIMIT 1`,
-      [token],
+      "SELECT is_active FROM admin_users WHERE id = ? LIMIT 1",
+      [payload.userId],
     );
-
-    const session = (rows as any)[0];
-    if (!session) {
-      return res.status(401).json({ error: "Invalid or expired token" });
+    const admin = (rows as any)[0];
+    if (!admin || !admin.is_active) {
+      return res.status(403).json({ error: "Admin account is disabled." });
     }
 
-    // Cache in memory
-    saveToken(token, session.admin_id, "admin");
-    req.userId = session.admin_id;
-    req.role = "admin";
+    req.userId = payload.userId;
+    req.role = payload.role;
     return next();
   } catch (error) {
-    console.error("verifyAdminToken error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(401).json({ error: "Invalid or expired token" });
   }
 };
 
@@ -113,15 +151,14 @@ export const optionalAuth = async (
   next: NextFunction,
 ) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      const session = tokenStore.get(token);
-
-      if (session) {
-        req.userId = session.userId;
-        req.role = session.role;
+    const token = getBearerToken(req);
+    if (token) {
+      try {
+        const payload = verifyJwt(token);
+        req.userId = payload.userId;
+        req.role = payload.role;
+      } catch {
+        // Ignore invalid token for optional auth
       }
     }
 
@@ -130,8 +167,4 @@ export const optionalAuth = async (
     console.error("Optional auth error:", error);
     next();
   }
-};
-
-export const removeToken = (token: string) => {
-  tokenStore.delete(token);
 };
