@@ -19,6 +19,7 @@ class UserController {
   private initializeRoutes() {
     this.router.post("/auth/register", this.register);
     this.router.post("/auth/login", this.login);
+    this.router.get("/auth/verify", verifyToken, this.verifyToken);
     this.router.get("/user/:id", verifyToken, this.getUserProfile);
     this.router.put("/user/:id", verifyToken, this.updateUserProfile);
     this.router.put("/user/:id/password", verifyToken, this.changePassword);

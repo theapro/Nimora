@@ -70,9 +70,7 @@ const PostCard: React.FC<PostCardProps> = ({
       if (!user) return;
 
       try {
-        const response = await apiCall(
-          `http://localhost:3001/api/posts/${id}/like/check`,
-        );
+        const response = await apiCall(`/api/posts/${id}/like/check`);
 
         if (response.ok) {
           const data = await response.json();
@@ -88,9 +86,7 @@ const PostCard: React.FC<PostCardProps> = ({
       if (!user || user.id === author.id) return;
 
       try {
-        const response = await apiCall(
-          `http://localhost:3001/api/user/${author.id}/follow/check`,
-        );
+        const response = await apiCall(`/api/user/${author.id}/follow/check`);
 
         if (response.ok) {
           const data = await response.json();
@@ -132,12 +128,9 @@ const PostCard: React.FC<PostCardProps> = ({
     try {
       if (isLiked) {
         // Unlike
-        const response = await apiCall(
-          `http://localhost:3001/api/posts/${id}/like`,
-          {
-            method: "DELETE",
-          },
-        );
+        const response = await apiCall(`/api/posts/${id}/like`, {
+          method: "DELETE",
+        });
 
         if (response.ok) {
           const data = await response.json();
@@ -146,12 +139,9 @@ const PostCard: React.FC<PostCardProps> = ({
         }
       } else {
         // Like
-        const response = await apiCall(
-          `http://localhost:3001/api/posts/${id}/like`,
-          {
-            method: "POST",
-          },
-        );
+        const response = await apiCall(`/api/posts/${id}/like`, {
+          method: "POST",
+        });
 
         if (response.ok) {
           const data = await response.json();
@@ -180,12 +170,9 @@ const PostCard: React.FC<PostCardProps> = ({
 
     try {
       const method = isSaved ? "DELETE" : "POST";
-      const response = await apiCall(
-        `http://localhost:3001/api/posts/${id}/save`,
-        {
-          method,
-        },
-      );
+      const response = await apiCall(`/api/posts/${id}/save`, {
+        method,
+      });
 
       if (response.ok) {
         setIsSaved(!isSaved);
@@ -213,24 +200,18 @@ const PostCard: React.FC<PostCardProps> = ({
     try {
       if (isFollowing) {
         // Unfollow
-        const response = await apiCall(
-          `http://localhost:3001/api/user/${author.id}/unfollow`,
-          {
-            method: "DELETE",
-          },
-        );
+        const response = await apiCall(`/api/user/${author.id}/unfollow`, {
+          method: "DELETE",
+        });
 
         if (response.ok) {
           setIsFollowing(false);
         }
       } else {
         // Follow
-        const response = await apiCall(
-          `http://localhost:3001/api/user/${author.id}/follow`,
-          {
-            method: "POST",
-          },
-        );
+        const response = await apiCall(`/api/user/${author.id}/follow`, {
+          method: "POST",
+        });
 
         if (response.ok) {
           setIsFollowing(true);

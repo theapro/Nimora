@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
-import { API_URL, apiCall } from "@/utils/api";
+import { apiCall } from "@/utils/api";
 
 interface User {
   id: number;

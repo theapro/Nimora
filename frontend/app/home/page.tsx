@@ -9,7 +9,7 @@ import TopDiscussions from "@/components/TopDiscussions";
 import TrendingTags from "@/components/TrendingTags";
 import { PageSkeleton } from "@/components/SkeletonLoader";
 
-const page = () => {
+const Page = () => {
   const [selectedCommunityId, setSelectedCommunityId] = useState<number | null>(
     null,
   );
@@ -68,4 +68,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

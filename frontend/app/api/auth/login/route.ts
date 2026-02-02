@@ -5,7 +5,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("Login request received:", body);
 
-    const backendUrl = "http://localhost:3001/api/auth/login";
+    const backendOrigin = (
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:3001"
+    ).replace(/\/$/, "");
+    const backendUrl = `${backendOrigin}/api/auth/login`;
     console.log("Forwarding to:", backendUrl);
 
     const response = await fetch(backendUrl, {
@@ -29,7 +34,7 @@ export async function POST(request: NextRequest) {
         error:
           "Failed to connect to backend. Make sure it's running on port 3001.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -25,7 +25,7 @@ const CategorySidebar: React.FC<CategorySidebarProps> = ({
   useEffect(() => {
     const fetchCommunities = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/communities`);
+        const response = await fetch("/api/communities");
         if (response.ok) {
           const data = await response.json();
           setCommunities(data.communities || []);

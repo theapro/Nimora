@@ -35,7 +35,7 @@ const SavedPostsPage = () => {
     const fetchSavedPosts = async () => {
       try {
         setLoading(true);
-        const response = await apiCall("http://localhost:3001/api/posts/saved");
+        const response = await apiCall("/api/posts/saved");
         if (response.ok) {
           const data = await response.json();
           setPosts(data.posts || []);

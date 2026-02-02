@@ -22,6 +22,12 @@ import {
 } from "lucide-react";
 import { apiCall } from "@/utils/api";
 
+type Community = {
+  id: number;
+  title: string;
+  image?: string | null;
+};
+
 const EditPost = () => {
   const params = useParams();
   const router = useRouter();
@@ -39,7 +45,7 @@ const EditPost = () => {
     null,
   );
   const [communityId, setCommunityId] = useState<number | null>(null);
-  const [communities, setCommunities] = useState<any[]>([]);
+  const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -51,9 +57,7 @@ const EditPost = () => {
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:3001/api/posts/${postId}`,
-        );
+        const response = await fetch(`/api/posts/${postId}`);
         if (response.ok) {
           const data = await response.json();
           const post = data.post;
@@ -66,7 +70,7 @@ const EditPost = () => {
             setCoverImagePreview(
               post.cover_image.startsWith("http")
                 ? post.cover_image
-                : `http://localhost:3001/uploads/${post.cover_image}`,
+                : `/uploads/${post.cover_image}`,
             );
           }
         } else {
@@ -84,7 +88,7 @@ const EditPost = () => {
 
     const fetchCommunities = async () => {
       try {
-        const response = await fetch("http://localhost:3001/api/communities");
+        const response = await fetch("/api/communities");
         if (response.ok) {
           const data = await response.json();
           setCommunities(data.communities);
@@ -176,7 +180,7 @@ const EditPost = () => {
     if (!content.trim()) return;
     setAiLoading(true);
     try {
-      const response = await apiCall("http://localhost:3001/api/ai/tags", {
+      const response = await apiCall("/api/ai/tags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -198,7 +202,7 @@ const EditPost = () => {
     if (!content.trim()) return;
     setAiLoading(true);
     try {
-      const response = await apiCall("http://localhost:3001/api/ai/summarize", {
+      const response = await apiCall("/api/ai/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -219,7 +223,7 @@ const EditPost = () => {
     if (!content.trim()) return;
     setAiLoading(true);
     try {
-      const response = await apiCall("http://localhost:3001/api/ai/expand", {
+      const response = await apiCall("/api/ai/expand", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -261,13 +265,10 @@ const EditPost = () => {
     }
 
     try {
-      const response = await apiCall(
-        `http://localhost:3001/api/posts/${postId}`,
-        {
-          method: "PUT",
-          body: formData,
-        },
-      );
+      const response = await apiCall(`/api/posts/${postId}`, {
+        method: "PUT",
+        body: formData,
+      });
 
       if (!response.ok) {
         const error = await response.json();
@@ -421,7 +422,7 @@ const EditPost = () => {
                             src={
                               community.image.startsWith("http")
                                 ? community.image
-                                : `http://localhost:3001/uploads/${community.image}`
+                                : `/uploads/${community.image}`
                             }
                             alt={community.title}
                             className="w-full h-full object-cover"

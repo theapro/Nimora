@@ -158,20 +158,18 @@ const PostDetail = () => {
 
     try {
       if (isLiked) {
-        const response = await apiCall(
-          `http://localhost:3001/api/posts/${postId}/like`,
-          { method: "DELETE" },
-        );
+        const response = await apiCall(`/api/posts/${postId}/like`, {
+          method: "DELETE",
+        });
         if (response.ok) {
           const data = await response.json();
           setLikes(data.likes);
           setIsLiked(false);
         }
       } else {
-        const response = await apiCall(
-          `http://localhost:3001/api/posts/${postId}/like`,
-          { method: "POST" },
-        );
+        const response = await apiCall(`/api/posts/${postId}/like`, {
+          method: "POST",
+        });
         if (response.ok) {
           const data = await response.json();
           setLikes(data.likes);
@@ -187,7 +185,7 @@ const PostDetail = () => {
     if (!post || !user) return;
     setAiLoading(true);
     try {
-      const response = await apiCall("http://localhost:3001/api/ai/translate", {
+      const response = await apiCall("/api/ai/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -220,16 +218,13 @@ const PostDetail = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await apiCall(
-        `http://localhost:3001/api/posts/${postId}/comments`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ content, parentId }),
+      const response = await apiCall(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ content, parentId }),
+      });
 
       if (response.ok) {
         if (parentId) {

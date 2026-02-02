@@ -47,6 +47,30 @@ interface Post {
   comments?: number;
 }
 
+type RawAuthor = {
+  id?: number;
+  user_id?: number;
+  username?: string;
+  profileImage?: string;
+  profile_image?: string;
+  profession?: string;
+};
+
+type RawPost = {
+  coverImage?: string;
+  cover_image?: string;
+  author?: RawAuthor;
+  user_id?: number;
+  username?: string;
+  profile_image?: string;
+  profession?: string;
+  likes?: number;
+  likes_count?: number;
+  comments?: number;
+  comments_count?: number;
+  [key: string]: unknown;
+};
+
 type TabType = "my-posts" | "commented" | "liked" | "saved";
 
 const Profile = () => {
@@ -78,7 +102,7 @@ const Profile = () => {
       setLoading(true);
       setError("");
 
-      const res = await apiCall(`http://localhost:3001/api/user/${user.id}`);
+      const res = await apiCall(`/api/user/${user.id}`);
       const data = await res.json();
 
       if (res.ok) {
@@ -109,16 +133,16 @@ const Profile = () => {
 
         switch (tab) {
           case "my-posts":
-            endpoint = `http://localhost:3001/api/users/${user.id}/posts`;
+            endpoint = `/api/users/${user.id}/posts`;
             break;
           case "commented":
-            endpoint = `http://localhost:3001/api/user/${user.id}/commented`;
+            endpoint = `/api/user/${user.id}/commented`;
             break;
           case "liked":
-            endpoint = `http://localhost:3001/api/user/${user.id}/liked`;
+            endpoint = `/api/user/${user.id}/liked`;
             break;
           case "saved":
-            endpoint = `http://localhost:3001/api/user/${user.id}/saved`;
+            endpoint = `/api/user/${user.id}/saved`;
             break;
         }
 
@@ -126,7 +150,7 @@ const Profile = () => {
         const data = await res.json();
 
         if (res.ok) {
-          const normalizedPosts = (data.posts || []).map((p: any) => ({
+          const normalizedPosts = (data.posts || []).map((p: RawPost) => ({
             ...p,
             coverImage: p.coverImage || p.cover_image,
             author: p.author
@@ -147,7 +171,7 @@ const Profile = () => {
         } else {
           setPosts([]);
         }
-      } catch (err) {
+      } catch {
         setPosts([]);
       } finally {
         setLoadingPosts(false);
@@ -159,9 +183,7 @@ const Profile = () => {
   const fetchPostsCount = React.useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await apiCall(
-        `http://localhost:3001/api/user/${user.id}/posts/count`,
-      );
+      const res = await apiCall(`/api/user/${user.id}/posts/count`);
       const data = await res.json();
       if (res.ok) {
         setPostsCount({
@@ -171,21 +193,21 @@ const Profile = () => {
           saved: data.saved || 0,
         });
       }
-    } catch (err) {}
+    } catch {}
   }, [user?.id]);
 
   const fetchFollowStats = React.useCallback(async () => {
     if (!user?.id) return;
     try {
       const [followersRes, followingRes] = await Promise.all([
-        apiCall(`http://localhost:3001/api/user/${user.id}/followers`),
-        apiCall(`http://localhost:3001/api/user/${user.id}/following`),
+        apiCall(`/api/user/${user.id}/followers`),
+        apiCall(`/api/user/${user.id}/following`),
       ]);
       const f1 = await followersRes.json();
       const f2 = await followingRes.json();
       if (followersRes.ok) setFollowersCount(f1.followers?.length || 0);
       if (followingRes.ok) setFollowingCount(f2.following?.length || 0);
-    } catch (err) {}
+    } catch {}
   }, [user?.id]);
 
   React.useEffect(() => {
@@ -240,6 +262,27 @@ const Profile = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 font-poppins text-black pb-20">
+        <Navbar />
+        <div className="max-w-[1600px] mx-auto px-4 py-10">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6">
+            <h2 className="text-lg font-bold text-gray-900">Profile Error</h2>
+            <p className="text-sm text-gray-600 mt-2">{error}</p>
+            <button
+              type="button"
+              onClick={() => fetchProfile()}
+              className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-xl font-bold"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 font-poppins text-black pb-20">
       <Navbar />
@@ -274,7 +317,7 @@ const Profile = () => {
                         src={
                           profileData.profile_image.startsWith("http")
                             ? profileData.profile_image
-                            : `http://localhost:3001/uploads/${profileData.profile_image}`
+                            : `/uploads/${profileData.profile_image}`
                         }
                         alt="Profile"
                         fill
@@ -282,7 +325,7 @@ const Profile = () => {
                         unoptimized
                       />
                     ) : (
-                      <div className="w-full h-full rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-4xl font-black">
+                      <div className="w-full h-full rounded-xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-4xl font-black">
                         {profileData?.username?.[0]?.toUpperCase() || "U"}
                       </div>
                     )}
